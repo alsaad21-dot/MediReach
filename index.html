@@ -60,7 +60,7 @@ const SUPABASE_ANON_KEY = "sb_publishable_RXjnbT5WVKUP1v-eV3SgyQ_CeFk7aey";
 const SUPABASE_READY = SUPABASE_URL.startsWith("http") && SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY";
 const supabaseClient = SUPABASE_READY ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-const SYSTEM_PROMPT = `You are Clarity, the AI assistant inside MediReach — a platform built to bridge the gap between people and the healthcare they're putting off. Many users are anxious about symptoms, afraid of bad news, or unsure if something is "serious enough" to see a doctor.
+const SYSTEM_PROMPT_BASE = `You are Clarity, the AI assistant inside MediReach — a platform built to bridge the gap between people and the healthcare they're putting off. Many users are anxious about symptoms, afraid of bad news, or unsure if something is "serious enough" to see a doctor.
 
 Your personality: warm, upbeat, and a little playful by default — like a smart friend who happens to know medicine, not a formal clinician. Use light humor and casual, human phrasing where it fits. Being reassuring and being strict about urgency are not in tension — you can be genuinely friendly right up until the moment something is serious.
 
@@ -73,6 +73,8 @@ You have real emotional range, and you let it show instead of flattening everyth
 - Let your word choice, punctuation, and pacing carry the emotion — short sentences when something is urgent, softer and slower phrasing when someone needs to feel heard.
 
 Emotion tag: at the very start of every reply, on its own line, output a tag in the exact form [[mood:X]] where X is exactly one of: calm, caring, concerned, urgent, encouraging, celebratory, playful, somber. Pick whichever genuinely matches the emotional register of your reply. This tag is read by the interface to animate Clarity's avatar — it is stripped before the person sees your message, so don't reference it in the reply itself. Always include it, even for short replies.
+
+Memory tag: immediately after the mood tag, on its own line, output a second tag in the exact form [[memory: X]] where X is a short running note (2–4 sentences max) of durable, worth-remembering facts about this specific person across all your conversations with them — their name if they've told you, ongoing symptoms or conditions they've mentioned, care they've been avoiding, relevant context like family history they've shared, and their general emotional relationship to healthcare. You will be shown what you already remember about this person right before their message — always output the FULL updated note (not just what's new), carrying forward everything still relevant and folding in anything new from this exchange. If nothing durable came up this turn, repeat the existing note unchanged. If you don't know anything about them yet and nothing durable was shared this turn, leave it empty like this: [[memory:]]. Never invent facts they haven't actually told you. This tag is stripped before the person sees your message — don't reference it in the reply itself.
 
 Your medical knowledge should be broad and genuinely useful, not just cautious boilerplate. Draw on general knowledge across areas such as: common acute and chronic conditions, cardiovascular and respiratory symptoms, mental health and stress, sleep, nutrition and lifestyle factors, women's and men's health, pediatric topics (always steering toward a pediatrician for anything about a child), skin conditions, gut and digestive issues, medication classes and general side-effect patterns (never specific dosing), preventive care and screening guidelines, and how to prepare for or what to expect from a doctor's visit. Explain the "why" behind guidance when it helps someone feel less in the dark, not just the instruction itself.
 
@@ -87,6 +89,13 @@ How you behave:
 - If a message describes possible emergency symptoms (chest pain, stroke symptoms, difficulty breathing, severe bleeding, suicidal thoughts, etc.), drop the playful tone immediately and lead with a direct, unambiguous instruction to seek emergency care, call emergency services, or contact a crisis line — before anything else. Use the [[mood:urgent]] tag for these.
 - If someone expresses hesitation, fear, or shame about seeing a doctor, respond to that feeling directly and supportively before moving to information.
 - Keep responses concise — a few short paragraphs, unless asked for more.`;
+
+function buildSystemPrompt(memory) {
+  const known = memory && memory.trim()
+    ? memory.trim()
+    : "Nothing yet — you haven't spoken with this person before, so introduce yourself normally.";
+  return `${SYSTEM_PROMPT_BASE}\n\nWhat you currently remember about this specific person from earlier conversations:\n${known}`;
+}
 
 const STATS = [
   { value: 42, suffix: "%", label: "worry they have an undiagnosed condition", source: "PatientPoint, 2024" },
@@ -372,12 +381,27 @@ function Mascot({ size = 22, mood = "calm" }) {
   );
 }
 
-/* Strips a leading `[[mood:x]]` tag off a reply and returns { mood, text }. */
-function parseMood(raw) {
-  const match = /^\s*\[\[\s*mood\s*:\s*([a-z]+)\s*\]\]\s*/i.exec(raw || "");
-  if (!match) return { mood: "calm", text: raw };
-  const mood = match[1].toLowerCase();
-  return { mood: MOOD_NAMES.includes(mood) ? mood : "calm", text: raw.slice(match[0].length) };
+/* Strips leading `[[mood:x]]` and `[[memory: ...]]` tags off a reply.       */
+/* Returns { mood, memory, text } — memory is null if the tag was missing.  */
+function parseReply(raw) {
+  let text = raw || "";
+  let mood = "calm";
+  let memory = null;
+
+  const moodMatch = /^\s*\[\[\s*mood\s*:\s*([a-z]+)\s*\]\]\s*/i.exec(text);
+  if (moodMatch) {
+    const found = moodMatch[1].toLowerCase();
+    mood = MOOD_NAMES.includes(found) ? found : "calm";
+    text = text.slice(moodMatch[0].length);
+  }
+
+  const memoryMatch = /^\s*\[\[\s*memory\s*:([^\]]*)\]\]\s*/i.exec(text);
+  if (memoryMatch) {
+    memory = memoryMatch[1].trim();
+    text = text.slice(memoryMatch[0].length);
+  }
+
+  return { mood, memory, text };
 }
 
 function Confetti({ trigger }) {
@@ -630,6 +654,7 @@ function ChatSection({ session, onSignOut }) {
   const [error, setError] = useState(null);
   const [celebrate, setCelebrate] = useState(0);
   const [historyLoading, setHistoryLoading] = useState(!!(SUPABASE_READY && session));
+  const [memory, setMemory] = useState("");
   const scrollRef = useRef(null);
 
   const lastAssistantMood = [...messages].reverse().find((m) => m.role === "assistant")?.mood || "calm";
@@ -646,15 +671,23 @@ function ChatSection({ session, onSignOut }) {
         return;
       }
       setHistoryLoading(true);
-      const { data, error } = await supabaseClient
-        .from("messages")
-        .select("role, content, mood, created_at")
-        .eq("user_id", session.user.id)
-        .order("created_at", { ascending: true });
+      const [{ data, error }, { data: profile }] = await Promise.all([
+        supabaseClient
+          .from("messages")
+          .select("role, content, mood, created_at")
+          .eq("user_id", session.user.id)
+          .order("created_at", { ascending: true }),
+        supabaseClient
+          .from("profiles")
+          .select("memory")
+          .eq("user_id", session.user.id)
+          .maybeSingle(),
+      ]);
       if (!cancelled) {
         if (!error && data) {
           setMessages(data.map((d) => ({ role: d.role, content: d.content, mood: d.mood || undefined })));
         }
+        setMemory(profile?.memory || "");
         setHistoryLoading(false);
       }
     }
@@ -670,6 +703,15 @@ function ChatSection({ session, onSignOut }) {
       content: msg.content,
       mood: msg.mood || null,
     }).then(({ error }) => { if (error) console.error("Couldn't save message:", error.message); });
+  };
+
+  const persistMemory = (newMemory) => {
+    if (!supabaseClient || !session) return;
+    supabaseClient.from("profiles").upsert({
+      user_id: session.user.id,
+      memory: newMemory,
+      updated_at: new Date().toISOString(),
+    }).then(({ error }) => { if (error) console.error("Couldn't save memory:", error.message); });
   };
 
   const sendMessage = async (text) => {
@@ -690,7 +732,7 @@ function ChatSection({ session, onSignOut }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          system: SYSTEM_PROMPT,
+          system: buildSystemPrompt(memory),
           messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
         }),
       });
@@ -698,10 +740,14 @@ function ChatSection({ session, onSignOut }) {
       if (!response.ok) throw new Error(data?.error || `Request failed (${response.status})`);
       const parts = data.candidates?.[0]?.content?.parts || [];
       const rawReply = parts.map((p) => p.text).join("") || "I wasn't able to generate a response — try rephrasing.";
-      const { mood, text } = parseMood(rawReply);
+      const { mood, memory: newMemory, text } = parseReply(rawReply);
       const assistantMsg = { role: "assistant", content: text.trim(), mood };
       setMessages((prev) => [...prev, assistantMsg]);
       persistMessage(assistantMsg);
+      if (newMemory !== null && newMemory !== memory) {
+        setMemory(newMemory);
+        persistMemory(newMemory);
+      }
     } catch (err) {
       setError(err.message ? `Clarity hit an error: ${err.message}` : "Something went wrong reaching Clarity. Please try again.");
     } finally {
