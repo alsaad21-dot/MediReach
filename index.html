@@ -650,7 +650,7 @@ function Hero({ onStart }) {
         aria-label="Say hi to Clarity"
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") react("celebratory"); }}
       >
-        <Mascot size={56} mood={heroMood} />
+        <Mascot size={118} mood={heroMood} />
       </div>
       <h1 style={{ fontSize: "clamp(2.1rem, 5.5vw, 3.3rem)", fontWeight: 800, margin: "1rem 0 1rem", lineHeight: 1.1 }}>
         Healthcare questions,{" "}
@@ -775,7 +775,7 @@ function AuthPanel() {
 
   return (
     <div className="mb-card mb-glass" style={{ padding: "2rem", maxWidth: 420, margin: "0 auto", boxShadow: "0 20px 50px rgba(37,99,235,0.12)" }}>
-      <div className="mb-avatar" style={{ margin: "0 auto 1rem" }}><Mascot size={30} /></div>
+      <div className="mb-avatar" style={{ margin: "0 auto 1rem" }}><Mascot size={48} /></div>
       <h3 style={{ textAlign: "center", fontWeight: 800, fontSize: "1.2rem", marginBottom: "0.35rem" }}>
         {mode === "signup" ? "Create your account" : "Welcome back"}
       </h3>
@@ -1064,7 +1064,7 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
       <aside className={`mb-sidebar ${sidebarOpen ? "open" : ""}`}>
         <button className="mb-sidebar-brand" onClick={onGoHome}>
           <span style={{ width: 26, height: 26, borderRadius: 8, background: "var(--grad-1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Mascot size={15} />
+            <Mascot size={22} />
           </span>
           MediReach
         </button>
@@ -1129,7 +1129,7 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
           )}
           {!messagesLoading && messages.length === 0 && !loading && (
             <div style={{ margin: "auto", textAlign: "center", color: "var(--text-muted)", maxWidth: 380 }}>
-              <div className="mb-avatar" style={{ margin: "0 auto 0.9rem" }}><Mascot size={30} /></div>
+              <div className="mb-avatar" style={{ margin: "0 auto 0.9rem" }}><Mascot size={48} /></div>
               <p style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text)" }}>{firstName ? `Hi ${firstName}, I'm Clarity 👋` : "Hi, I'm Clarity 👋"}</p>
               <p style={{ fontSize: "0.88rem", marginTop: "0.3rem" }}>Whatever's on your mind — a symptom, a worry, or just not knowing where to start.</p>
               <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center", marginTop: "1.1rem" }}>
@@ -1141,7 +1141,7 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
           )}
           {!messagesLoading && messages.map((m, i) => (
             <div key={i} className={`mb-msg-row ${m.role}`}>
-              {m.role === "assistant" && <div className="mb-avatar" style={{ background: MOOD_META[m.mood || "calm"].grad }}><Mascot size={26} mood={m.mood || "calm"} /></div>}
+              {m.role === "assistant" && <div className="mb-avatar" style={{ background: MOOD_META[m.mood || "calm"].grad }}><Mascot size={48} mood={m.mood || "calm"} /></div>}
               <div className={`mb-bubble ${m.role}`}>
                 <span className="mb-bubble-label">{m.role === "user" ? "You" : `Clarity${m.mood && m.mood !== "calm" ? ` · ${MOOD_META[m.mood].label}` : ""}`}</span>
                 <span style={{ whiteSpace: "pre-wrap" }}>{renderInline(m.content)}</span>
@@ -1150,7 +1150,7 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
           ))}
           {loading && (
             <div className="mb-msg-row assistant">
-              <div className="mb-avatar"><Mascot size={26} talking /></div>
+              <div className="mb-avatar"><Mascot size={48} talking /></div>
               <div className="mb-bubble assistant">
                 <span className="mb-typing-dot" /><span className="mb-typing-dot" /><span className="mb-typing-dot" />
               </div>
@@ -1360,7 +1360,7 @@ function App() {
         <div style={{ maxWidth: 1060, margin: "0 auto", padding: "0.85rem 1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <button onClick={goHome} style={{ background: "none", border: "none", fontSize: "1.15rem", fontWeight: 800, color: "var(--text)", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--grad-1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Mascot size={17} />
+              <Mascot size={25} />
             </span>
             MediReach
           </button>
