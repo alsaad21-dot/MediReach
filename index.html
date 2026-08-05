@@ -257,6 +257,25 @@ const GlobalStyles = () => (
       margin: 0 auto 1.5rem;
       animation: mb-avatar-bob 3.2s ease-in-out infinite;
       box-shadow: 0 16px 40px rgba(37,99,235,0.3);
+      cursor: pointer; transition: filter 0.2s ease;
+    }
+    .mb-avatar-hero:hover { filter: brightness(1.08); }
+    .mb-avatar-hero:active { filter: brightness(0.95); }
+
+    /* ---- mascot life: blinking + talking ---- */
+    .mb-eye { transform-box: fill-box; transform-origin: center; animation: mb-blink 4.8s ease-in-out infinite; }
+    .mb-eye:nth-of-type(2) { animation-delay: 0.08s; }
+    @keyframes mb-blink {
+      0%, 92%, 100% { transform: scaleY(1); }
+      95% { transform: scaleY(0.12); }
+    }
+    .mb-mouth-talking {
+      transform-box: fill-box; transform-origin: center;
+      animation: mb-talk 0.32s ease-in-out infinite;
+    }
+    @keyframes mb-talk {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(0.45); }
     }
 
     /* ---- chat ---- */
@@ -435,18 +454,18 @@ const MOOD_META = {
 };
 const MOOD_NAMES = Object.keys(MOOD_META);
 
-function Mascot({ size = 22, mood = "calm" }) {
+function Mascot({ size = 22, mood = "calm", talking = false }) {
   const m = MOOD_META[mood] || MOOD_META.calm;
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
       {m.brows && <path d={m.brows} stroke="#fff" strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.85" />}
-      <circle cx="14" cy="18" r="2.4" fill="#fff" />
+      <circle className="mb-eye" cx="14" cy="18" r="2.4" fill="#fff" />
       {m.wink ? (
         <path d="M23.6 18h5" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
       ) : (
-        <circle cx="26" cy="18" r="2.4" fill="#fff" />
+        <circle className="mb-eye" cx="26" cy="18" r="2.4" fill="#fff" />
       )}
-      <path d={m.mouth} stroke="#fff" strokeWidth="2.4" strokeLinecap="round" fill={m.mouthFill || "none"} />
+      <path className={talking ? "mb-mouth-talking" : ""} d={m.mouth} stroke="#fff" strokeWidth="2.4" strokeLinecap="round" fill={m.mouthFill || "none"} />
     </svg>
   );
 }
@@ -580,13 +599,32 @@ function Blobs() {
 }
 
 function Hero({ onStart }) {
+  const [heroMood, setHeroMood] = useState("calm");
+  const reactTimeout = useRef(null);
+
+  const react = (mood) => {
+    setHeroMood(mood);
+    if (reactTimeout.current) clearTimeout(reactTimeout.current);
+    reactTimeout.current = setTimeout(() => setHeroMood("calm"), 1400);
+  };
+
+  useEffect(() => () => { if (reactTimeout.current) clearTimeout(reactTimeout.current); }, []);
+
   return (
     <section style={{ position: "relative", maxWidth: 720, margin: "0 auto", padding: "3.5rem 1.25rem 2.5rem", textAlign: "center", zIndex: 1 }}>
       <p style={{ display: "inline-block", background: "var(--grad-2)", color: "#fff", fontWeight: 700, fontSize: "0.78rem", padding: "0.4rem 0.9rem", borderRadius: 999, letterSpacing: "0.02em" }}>
         ✨ A friendlier first step toward care
       </p>
-      <div className="mb-avatar-hero">
-        <Mascot size={44} />
+      <div
+        className="mb-avatar-hero"
+        onMouseEnter={() => react("playful")}
+        onClick={() => react("celebratory")}
+        role="button"
+        tabIndex={0}
+        aria-label="Say hi to Clarity"
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") react("celebratory"); }}
+      >
+        <Mascot size={44} mood={heroMood} />
       </div>
       <h1 style={{ fontSize: "clamp(2.1rem, 5.5vw, 3.3rem)", fontWeight: 800, margin: "1rem 0 1rem", lineHeight: 1.1 }}>
         Healthcare questions,{" "}
@@ -1079,7 +1117,7 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
           ))}
           {loading && (
             <div className="mb-msg-row assistant">
-              <div className="mb-avatar"><Mascot size={18} /></div>
+              <div className="mb-avatar"><Mascot size={18} talking /></div>
               <div className="mb-bubble assistant">
                 <span className="mb-typing-dot" /><span className="mb-typing-dot" /><span className="mb-typing-dot" />
               </div>
