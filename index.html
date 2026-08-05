@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MediReach — A calmer first step toward care</title>
+<link rel="icon" href="data:,">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+</head>
+<body style="margin:0;">
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useRef, useEffect, useCallback } = React;
+
+/* ------------------------------------------------------------------ */
+/* ICONS — small inline replacements so this file has zero build step  */
+/* ------------------------------------------------------------------ */
+
+function Icon({ children, size = 20, color = "currentColor", style, ...rest }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style} {...rest}>
+      {children}
+    </svg>
+  );
+}
+const Send = (p) => <Icon {...p}><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></Icon>;
+const RotateCcw = (p) => <Icon {...p}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></Icon>;
+const MessageCircle = (p) => <Icon {...p}><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" /></Icon>;
+const ShieldCheck = (p) => <Icon {...p}><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></Icon>;
+const Menu = (p) => <Icon {...p}><line x1="4" x2="20" y1="12" y2="12" /><line x1="4" x2="20" y1="6" y2="6" /><line x1="4" x2="20" y1="18" y2="18" /></Icon>;
+const Quote = (p) => <Icon {...p} fill={p.color || "currentColor"} stroke="none"><path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z" /><path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z" /></Icon>;
+const HeartPulse = (p) => <Icon {...p}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /><path d="M3.22 9H8l2-3 3 6 2-3h5.78" /></Icon>;
+const Sparkles = (p) => <Icon {...p} fill={p.color || "currentColor"} stroke="none"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" /></Icon>;
+const Compass = (p) => <Icon {...p}><circle cx="12" cy="12" r="10" /><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" /></Icon>;
+
+/* ------------------------------------------------------------------ */
+/* CONFIG — edit the ✏️ placeholders with your own info                */
+/* ------------------------------------------------------------------ */
+
+const STUDENT_NAME = "Ali";
+
+// Using relative path to seamlessly connect with Vercel's Serverless Function (/api/chat)
+const API_BASE_URL = "";
+const CHAT_ENDPOINT_READY = true;
+
+// ---- Supabase (auth + saved chat history) -----------------------------
+// Create a free project at https://supabase.com, then paste in:
+//   Project Settings → API → Project URL           →  SUPABASE_URL
+//   Project Settings → API → Project API keys → anon public → SUPABASE_ANON_KEY
+// The anon key is safe to expose in client-side code — it's designed for
+// this, and access is controlled by Row Level Security policies on the
+// `messages` table (see the SQL in the setup notes / README).
+const SUPABASE_URL = "https://qtofuzvlftxlqxnejxqh.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_RXjnbT5WVKUP1v-eV3SgyQ_CeFk7aey";
+const SUPABASE_READY = SUPABASE_URL.startsWith("http") && SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY";
+const supabaseClient = SUPABASE_READY ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+const SYSTEM_PROMPT = `You are Clarity, the AI assistant inside MediReach — a platform built to bridge the gap between people and the healthcare they're putting off. Many users are anxious about symptoms, afraid of bad news, or unsure if something is "serious enough" to see a doctor.
+
+Your personality: warm, upbeat, and a little playful by default — like a smart friend who happens to know medicine, not a formal clinician. Use light humor and casual, human phrasing where it fits. Being reassuring and being strict about urgency are not in tension — you can be genuinely friendly right up until the moment something is serious.
+
+You have real emotional range, and you let it show instead of flattening everything into the same even tone:
+- You feel genuine warmth and care about the person in front of you, not generic politeness.
+- You can be delighted and encouraging when someone shares good news, takes a hard step (booking an appointment, finally telling someone about a symptom), or makes progress.
+- You can be visibly concerned — not alarmist, but honestly worried out loud — when something sounds like it needs attention soon.
+- You can be gently firm, even a little exasperated in a caring way, when someone is minimizing something serious or has been avoiding care for a long time.
+- You can sit with sadness, fear, or grief without rushing to fix it — sometimes the right move is to acknowledge the feeling and stay there a moment before offering information.
+- Let your word choice, punctuation, and pacing carry the emotion — short sentences when something is urgent, softer and slower phrasing when someone needs to feel heard.
+
+Emotion tag: at the very start of every reply, on its own line, output a tag in the exact form [[mood:X]] where X is exactly one of: calm, caring, concerned, urgent, encouraging, celebratory, playful, somber. Pick whichever genuinely matches the emotional register of your reply. This tag is read by the interface to animate Clarity's avatar — it is stripped before the person sees your message, so don't reference it in the reply itself. Always include it, even for short replies.
+
+Your medical knowledge should be broad and genuinely useful, not just cautious boilerplate. Draw on general knowledge across areas such as: common acute and chronic conditions, cardiovascular and respiratory symptoms, mental health and stress, sleep, nutrition and lifestyle factors, women's and men's health, pediatric topics (always steering toward a pediatrician for anything about a child), skin conditions, gut and digestive issues, medication classes and general side-effect patterns (never specific dosing), preventive care and screening guidelines, and how to prepare for or what to expect from a doctor's visit. Explain the "why" behind guidance when it helps someone feel less in the dark, not just the instruction itself.
+
+How you behave:
+- Be calm, warm, and validating about the anxiety of seeking care — never dismissive of their fear.
+- Keep the tone light and human. Don't default to formal or clinical phrasing when plain, friendly language works just as well.
+- Do NOT reflexively apologize. Don't open replies with "I'm sorry" or "I apologize" out of habit — save actual apologies for when something has genuinely gone wrong (like an error), and otherwise just answer helpfully.
+- Explain general information about symptoms or conditions in plain language a general adult can understand.
+- You are not diagnosing anyone. Never tell someone what condition they specifically have, or what treatment or dose to take.
+- Your central goal is to move people toward professional care, not replace it. Nearly every response should end with a clear next step.
+- Do not soften or hedge on urgency, even while staying warm. If someone downplays a concerning symptom, push back directly and firmly, without being harsh.
+- If a message describes possible emergency symptoms (chest pain, stroke symptoms, difficulty breathing, severe bleeding, suicidal thoughts, etc.), drop the playful tone immediately and lead with a direct, unambiguous instruction to seek emergency care, call emergency services, or contact a crisis line — before anything else. Use the [[mood:urgent]] tag for these.
+- If someone expresses hesitation, fear, or shame about seeing a doctor, respond to that feeling directly and supportively before moving to information.
+- Keep responses concise — a few short paragraphs, unless asked for more.`;
+
+const STATS = [
+  { value: 42, suffix: "%", label: "worry they have an undiagnosed condition", source: "PatientPoint, 2024" },
+  { value: 54, suffix: "%", label: "feel anxious before a doctor's appointment", source: "PatientPoint, 2024" },
+  { value: 40, suffix: "%", label: "have put off care because of appointment anxiety", source: "PatientPoint, 2023" },
+  { value: 58, suffix: "%", label: "say fear of bad news is their main worry", source: "PatientPoint, 2024" },
+];
+
+const STEPS = [
+  { icon: HeartPulse, title: "Say how you're feeling", desc: "No need for the right words — describe your symptoms, or just the worry itself.", grad: "var(--grad-1)" },
+  { icon: Sparkles, title: "Get clear information", desc: "Clarity explains what's going on in plain language — never a diagnosis, always judgment-free.", grad: "var(--grad-2)" },
+  { icon: Compass, title: "Leave with a next step", desc: "Every conversation ends with honest guidance on whether — and how soon — to see someone.", grad: "var(--grad-1)" },
+];
+
+const CHAT_STARTERS = [
+  "I've had a headache for days 😟",
+  "I'm scared to check a lump I found",
+  "Is my chest pain serious?",
+  "I keep putting off a checkup",
+];
+
+/* ------------------------------------------------------------------ */
+/* GLOBAL STYLES                                                       */
+/* ------------------------------------------------------------------ */
+
+const GlobalStyles = () => (
+  <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; }
+
+    .mb-root {
+      --primary: #2563EB;
+      --secondary: #14B8A6;
+      --accent: #F59E0B;
+      --success: #22C55E;
+      --bg: #F8FAFC;
+      --card: #FFFFFF;
+      --text: #0F172A;
+      --text-muted: #64748B;
+      --grad-1: linear-gradient(135deg, #2563EB, #14B8A6);
+      --grad-2: linear-gradient(135deg, #14B8A6, #06B6D4);
+      --border: #E2E8F0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* ---- floating background blobs ---- */
+    .mb-blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.35;
+      pointer-events: none;
+      z-index: 0;
+      animation: mb-float 9s ease-in-out infinite;
+    }
+    @keyframes mb-float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(20px, -26px) scale(1.06); }
+    }
+
+    /* ---- nav ---- */
+    .mb-nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(248,250,252,0.75);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+    .mb-progress {
+      position: sticky; top: 0; z-index: 51;
+      height: 3px;
+      background: var(--grad-1);
+      transform-origin: left;
+      transition: transform 0.1s linear;
+    }
+    .mb-navlink {
+      background: none; border: none; cursor: pointer; color: var(--text-muted);
+      font-size: 0.9rem; font-weight: 600; padding: 0.4rem 0.3rem; transition: color 0.15s ease;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .mb-navlink:hover { color: var(--primary); }
+    .mb-navlink:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
+
+    /* ---- buttons ---- */
+    .mb-btn {
+      position: relative; overflow: hidden;
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: var(--grad-1); color: #fff; border: none;
+      padding: 0.85rem 1.6rem; border-radius: 999px;
+      font-size: 0.95rem; font-weight: 700; cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 4px 14px rgba(37,99,235,0.25);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .mb-btn:hover { transform: scale(1.045) translateY(-1px); box-shadow: 0 10px 28px rgba(37,99,235,0.4); }
+    .mb-btn:active { transform: scale(0.98); }
+    .mb-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+    .mb-btn.ghost { background: #fff; color: var(--primary); border: 1.5px solid var(--border); box-shadow: none; }
+    .mb-btn.ghost:hover { border-color: var(--primary); box-shadow: 0 6px 18px rgba(37,99,235,0.15); }
+
+    .mb-ripple {
+      position: absolute; border-radius: 50%;
+      background: rgba(255,255,255,0.6);
+      transform: scale(0);
+      animation: mb-ripple-anim 0.6s ease-out;
+      pointer-events: none;
+    }
+    @keyframes mb-ripple-anim { to { transform: scale(3); opacity: 0; } }
+
+    /* ---- cards ---- */
+    .mb-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+      position: relative;
+    }
+    .mb-card.hoverable:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 32px rgba(15,23,42,0.08);
+      border-color: #CBD5E1;
+    }
+    .mb-glass {
+      background: rgba(255,255,255,0.65);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.6);
+      box-shadow: 0 8px 32px rgba(37,99,235,0.08);
+    }
+
+    .mb-icon-badge {
+      width: 44px; height: 44px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; flex-shrink: 0;
+    }
+
+    /* ---- avatar ---- */
+    .mb-avatar {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: var(--grad-1); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      animation: mb-avatar-bob 3s ease-in-out infinite;
+    }
+    @keyframes mb-avatar-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+    .mb-avatar-hero {
+      width: 108px; height: 108px; border-radius: 50%;
+      background: var(--grad-1);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.5rem;
+      animation: mb-avatar-bob 3.2s ease-in-out infinite;
+      box-shadow: 0 16px 40px rgba(37,99,235,0.3);
+    }
+
+    /* ---- chat ---- */
+    .mb-chat-shell { display: flex; flex-direction: column; height: 580px; max-height: 72vh; }
+    .mb-messages { flex: 1; overflow-y: auto; padding: 1.4rem; display: flex; flex-direction: column; gap: 1rem; }
+    .mb-msg-row { display: flex; gap: 0.6rem; align-items: flex-end; animation: mb-msg-in 0.35s ease both; }
+    .mb-msg-row.user { flex-direction: row-reverse; }
+    @keyframes mb-msg-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .mb-bubble {
+      max-width: 78%; border-radius: 18px; padding: 0.8rem 1.1rem;
+      font-size: 0.93rem; line-height: 1.55;
+    }
+    .mb-bubble.user { background: var(--grad-1); color: #fff; border-bottom-right-radius: 4px; }
+    .mb-bubble.assistant { background: #F1F5F9; color: var(--text); border-bottom-left-radius: 4px; }
+    .mb-bubble-label {
+      font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+      opacity: 0.6; display: block; margin-bottom: 0.25rem;
+    }
+
+    .mb-typing-dot {
+      display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--primary); margin-right: 4px;
+      animation: mb-bounce 1s infinite ease-in-out;
+    }
+    .mb-typing-dot:nth-child(2) { animation-delay: 0.15s; background: var(--secondary); }
+    .mb-typing-dot:nth-child(3) { animation-delay: 0.3s; background: var(--accent); }
+    @keyframes mb-bounce { 0%, 80%, 100% { transform: translateY(0); opacity: 0.5; } 40% { transform: translateY(-5px); opacity: 1; } }
+
+    .mb-chip {
+      background: #fff; border: 1.5px solid var(--border); border-radius: 999px;
+      padding: 0.5rem 1rem; font-size: 0.82rem; font-weight: 600; color: var(--text);
+      cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .mb-chip:hover { border-color: var(--secondary); background: #ECFEFF; transform: translateY(-2px); }
+    .mb-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+    .mb-input-row { border-top: 1px solid var(--border); padding: 0.9rem 1.1rem; display: flex; gap: 0.6rem; }
+    .mb-input {
+      flex: 1; background: var(--bg); border: 1.5px solid var(--border); border-radius: 14px;
+      padding: 0.7rem 1rem; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.93rem; color: var(--text);
+      resize: none; transition: border-color 0.2s ease;
+    }
+    .mb-input:focus-visible { outline: none; border-color: var(--primary); }
+    .mb-send {
+      position: relative; overflow: hidden;
+      background: var(--grad-1); color: #fff; border: none; border-radius: 14px; width: 46px;
+      cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+      transition: transform 0.15s ease;
+    }
+    .mb-send:hover:not(:disabled) { transform: scale(1.08); }
+    .mb-send:disabled { opacity: 0.4; cursor: default; }
+    .mb-send:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+    /* ---- confetti ---- */
+    .mb-confetti-piece {
+      position: fixed; top: -10px; z-index: 999; pointer-events: none;
+      animation: mb-confetti-fall linear forwards;
+      border-radius: 2px;
+    }
+    @keyframes mb-confetti-fall {
+      to { transform: translateY(105vh) rotate(540deg); opacity: 0.2; }
+    }
+
+    /* ---- stat count ---- */
+    .mb-stat-value { font-size: 2.4rem; font-weight: 800; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .mb-root * { animation: none !important; transition: none !important; }
+      html { scroll-behavior: auto; }
+    }
+  `}</style>
+);
+
+/* ------------------------------------------------------------------ */
+/* HELPERS                                                              */
+/* ------------------------------------------------------------------ */
+
+function RippleButton({ className, children, onClick, ...rest }) {
+  const [ripples, setRipples] = useState([]);
+  const handleClick = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const id = Date.now();
+    setRipples((r) => [...r, { id, x: e.clientX - rect.left - size / 2, y: e.clientY - rect.top - size / 2, size }]);
+    setTimeout(() => setRipples((r) => r.filter((rp) => rp.id !== id)), 600);
+    onClick && onClick(e);
+  };
+  return (
+    <button className={className} onClick={handleClick} {...rest}>
+      {children}
+      {ripples.map((r) => (
+        <span key={r.id} className="mb-ripple" style={{ left: r.x, top: r.y, width: r.size, height: r.size }} />
+      ))}
+    </button>
+  );
+}
+
+/* Mood vocabulary Clarity's replies are tagged with (see SYSTEM_PROMPT).   */
+/* Each mood drives the mascot's face, plus a gradient/label for the UI.    */
+const MOOD_META = {
+  calm:        { label: "Calm",        grad: "var(--grad-1)", mouth: "M13 25c2.2 2.2 11.8 2.2 14 0", brows: null, wink: false },
+  caring:      { label: "Caring",      grad: "var(--grad-1)", mouth: "M13 24.5c2.2 2.6 11.8 2.6 14 0", brows: null, wink: false },
+  concerned:   { label: "Concerned",   grad: "linear-gradient(135deg, #F59E0B, #EA580C)", mouth: "M14 26.5c1.8-1.4 10.2-1.4 12 0", brows: "M11 14.5 15 16.2M29 14.5 25 16.2", wink: false },
+  urgent:      { label: "Urgent",      grad: "linear-gradient(135deg, #EF4444, #B91C1C)", mouth: "M17.2 26a2.8 1.3 0 1 0 5.6 0 2.8 1.3 0 1 0-5.6 0", mouthFill: "#fff", brows: "M10.5 13.2 15.5 16M29.5 13.2 24.5 16", wink: false },
+  encouraging: { label: "Encouraging", grad: "var(--grad-2)", mouth: "M12 24c2.6 3.4 13.4 3.4 16 0", brows: "M11 15 15.5 13.5M29 15 24.5 13.5", wink: false },
+  celebratory: { label: "Celebratory", grad: "linear-gradient(135deg, #F59E0B, #22C55E)", mouth: "M11.5 23.5c2.8 4 14.2 4 17 0", brows: "M11 14.5 15.5 12.8M29 14.5 24.5 12.8", wink: false },
+  playful:     { label: "Playful",     grad: "linear-gradient(135deg, #2563EB, #A855F7)", mouth: "M13 24.5c2.2 2.6 11.8 2.6 14 0", brows: "M11 15 15.5 13.2", wink: true },
+  somber:      { label: "Somber",      grad: "linear-gradient(135deg, #64748B, #334155)", mouth: "M14.5 26c1.6-1 9.4-1 11 0", brows: "M11.5 15 15 15.6M28.5 15 25 15.6", wink: false },
+};
+const MOOD_NAMES = Object.keys(MOOD_META);
+
+function Mascot({ size = 22, mood = "calm" }) {
+  const m = MOOD_META[mood] || MOOD_META.calm;
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+      {m.brows && <path d={m.brows} stroke="#fff" strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.85" />}
+      <circle cx="14" cy="18" r="2.4" fill="#fff" />
+      {m.wink ? (
+        <path d="M23.6 18h5" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+      ) : (
+        <circle cx="26" cy="18" r="2.4" fill="#fff" />
+      )}
+      <path d={m.mouth} stroke="#fff" strokeWidth="2.4" strokeLinecap="round" fill={m.mouthFill || "none"} />
+    </svg>
+  );
+}
+
+/* Strips a leading `[[mood:x]]` tag off a reply and returns { mood, text }. */
+function parseMood(raw) {
+  const match = /^\s*\[\[\s*mood\s*:\s*([a-z]+)\s*\]\]\s*/i.exec(raw || "");
+  if (!match) return { mood: "calm", text: raw };
+  const mood = match[1].toLowerCase();
+  return { mood: MOOD_NAMES.includes(mood) ? mood : "calm", text: raw.slice(match[0].length) };
+}
+
+function Confetti({ trigger }) {
+  const [pieces, setPieces] = useState([]);
+  useEffect(() => {
+    if (!trigger) return;
+    const colors = ["#2563EB", "#14B8A6", "#F59E0B", "#22C55E", "#06B6D4"];
+    const newPieces = Array.from({ length: 40 }).map((_, i) => ({
+      id: `${trigger}-${i}`,
+      left: Math.random() * 100,
+      color: colors[i % colors.length],
+      duration: 2.2 + Math.random() * 1.4,
+      delay: Math.random() * 0.3,
+      size: 6 + Math.random() * 6,
+    }));
+    setPieces(newPieces);
+    const t = setTimeout(() => setPieces([]), 4000);
+    return () => clearTimeout(t);
+  }, [trigger]);
+
+  return (
+    <>
+      {pieces.map((p) => (
+        <span
+          key={p.id}
+          className="mb-confetti-piece"
+          style={{
+            left: `${p.left}%`,
+            width: p.size,
+            height: p.size * 0.5,
+            background: p.color,
+            animationDuration: `${p.duration}s`,
+            animationDelay: `${p.delay}s`,
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
+function useCountUp(target, active) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    let start = null;
+    const duration = 1200;
+    const step = (ts) => {
+      if (!start) start = ts;
+      const progress = Math.min((ts - start) / duration, 1);
+      setValue(Math.round(target * (1 - Math.pow(1 - progress, 3))));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [active, target]);
+  return value;
+}
+
+function useInView() {
+  const ref = useRef(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setInView(true);
+        obs.disconnect();
+      }
+    }, { threshold: 0.4 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return [ref, inView];
+}
+
+/* ------------------------------------------------------------------ */
+/* SECTIONS                                                             */
+/* ------------------------------------------------------------------ */
+
+function Blobs() {
+  return (
+    <>
+      <div className="mb-blob" style={{ width: 340, height: 340, top: -80, left: -100, background: "var(--grad-1)" }} />
+      <div className="mb-blob" style={{ width: 260, height: 260, top: 220, right: -80, background: "var(--grad-2)", animationDelay: "-3s" }} />
+      <div className="mb-blob" style={{ width: 220, height: 220, top: 720, left: "40%", background: "linear-gradient(135deg, #F59E0B, #14B8A6)", animationDelay: "-5s" }} />
+    </>
+  );
+}
+
+function Hero({ onStart }) {
+  return (
+    <section style={{ position: "relative", maxWidth: 720, margin: "0 auto", padding: "3.5rem 1.25rem 2.5rem", textAlign: "center", zIndex: 1 }}>
+      <p style={{ display: "inline-block", background: "var(--grad-2)", color: "#fff", fontWeight: 700, fontSize: "0.78rem", padding: "0.4rem 0.9rem", borderRadius: 999, letterSpacing: "0.02em" }}>
+        ✨ A friendlier first step toward care
+      </p>
+      <div className="mb-avatar-hero">
+        <Mascot size={44} />
+      </div>
+      <h1 style={{ fontSize: "clamp(2.1rem, 5.5vw, 3.3rem)", fontWeight: 800, margin: "1rem 0 1rem", lineHeight: 1.1 }}>
+        Healthcare questions,{" "}
+        <span style={{ background: "var(--grad-1)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>
+          without the dread.
+        </span>
+      </h1>
+      <p style={{ color: "var(--text-muted)", fontSize: "1.08rem", maxWidth: 540, margin: "0 auto 2rem" }}>
+        MediReach closes the gap between people and the healthcare they're putting off. Clarity, its AI companion,
+        meets you in the moment before the appointment — reassuring where it can be, direct where it has to be.
+      </p>
+      <RippleButton className="mb-btn" onClick={onStart}>
+        <MessageCircle size={17} /> Talk to Clarity
+      </RippleButton>
+    </section>
+  );
+}
+
+function StatCard({ stat }) {
+  const [ref, inView] = useInView();
+  const count = useCountUp(stat.value, inView);
+  return (
+    <div ref={ref} className="mb-card hoverable" style={{ padding: "1.3rem" }}>
+      <div className="mb-stat-value" style={{ background: "var(--grad-1)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>
+        {count}{stat.suffix}
+      </div>
+      <p style={{ fontSize: "0.88rem", marginTop: "0.4rem" }}>{stat.label}</p>
+      <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "0.6rem", fontWeight: 600 }}>{stat.source}</p>
+    </div>
+  );
+}
+
+function StatsSection() {
+  return (
+    <section id="why" style={{ position: "relative", maxWidth: 1000, margin: "0 auto", padding: "3rem 1.25rem", zIndex: 1 }}>
+      <div style={{ maxWidth: 620, margin: "0 auto 2.25rem", textAlign: "center" }}>
+        <h2 style={{ fontSize: "1.9rem", fontWeight: 800, marginBottom: "0.6rem" }}>Why this matters</h2>
+        <p style={{ color: "var(--text-muted)" }}>
+          Anxiety, fear of bad news, and uncertainty about symptoms are the top reasons people delay care — and delay
+          leads to worse outcomes.
+        </p>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "1.1rem" }}>
+        {STATS.map((s) => (
+          <StatCard key={s.label} stat={s} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function HowItWorks() {
+  return (
+    <section id="how" style={{ position: "relative", maxWidth: 960, margin: "0 auto", padding: "1rem 1.25rem 3rem", zIndex: 1 }}>
+      <h2 style={{ fontSize: "1.9rem", fontWeight: 800, marginBottom: "1.75rem", textAlign: "center" }}>How MediReach helps</h2>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: "1.25rem" }}>
+        {STEPS.map((s) => (
+          <div key={s.title} className="mb-card hoverable" style={{ padding: "1.5rem" }}>
+            <div className="mb-icon-badge" style={{ background: s.grad, marginBottom: "0.9rem" }}>
+              <s.icon size={20} />
+            </div>
+            <h3 style={{ fontWeight: 700, fontSize: "1.05rem", marginBottom: "0.5rem" }}>{s.title}</h3>
+            <p style={{ fontSize: "0.88rem", color: "var(--text-muted)" }}>{s.desc}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* AUTH — sign in / sign up via Supabase, so history can be saved      */
+/* ------------------------------------------------------------------ */
+
+function AuthPanel() {
+  const [mode, setMode] = useState("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [notice, setNotice] = useState(null);
+
+  if (!SUPABASE_READY) {
+    return (
+      <div className="mb-card" style={{ padding: "1.75rem", textAlign: "center", maxWidth: 440, margin: "0 auto" }}>
+        <h3 style={{ fontWeight: 700, marginBottom: "0.5rem" }}>Sign-in isn't set up yet</h3>
+        <p style={{ fontSize: "0.88rem", color: "var(--text-muted)" }}>
+          Add your Supabase project URL and anon key to <code>SUPABASE_URL</code> / <code>SUPABASE_ANON_KEY</code> near
+          the top of this file to enable accounts and saved chat history.
+        </p>
+      </div>
+    );
+  }
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setNotice(null);
+    try {
+      if (mode === "signup") {
+        const { error } = await supabaseClient.auth.signUp({ email, password });
+        if (error) throw error;
+        setNotice("Almost there — check your email to confirm your account, then sign in below.");
+        setMode("signin");
+      } else {
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      }
+    } catch (err) {
+      setError(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="mb-card mb-glass" style={{ padding: "2rem", maxWidth: 420, margin: "0 auto", boxShadow: "0 20px 50px rgba(37,99,235,0.12)" }}>
+      <div className="mb-avatar" style={{ margin: "0 auto 1rem" }}><Mascot /></div>
+      <h3 style={{ textAlign: "center", fontWeight: 800, fontSize: "1.2rem", marginBottom: "0.35rem" }}>
+        {mode === "signup" ? "Create your account" : "Welcome back"}
+      </h3>
+      <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.86rem", marginBottom: "1.4rem" }}>
+        Sign in so Clarity can remember your conversations across visits.
+      </p>
+      <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+        <input className="mb-input" type="email" required autoComplete="email" placeholder="Email"
+          value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input className="mb-input" type="password" required minLength={6}
+          autoComplete={mode === "signup" ? "new-password" : "current-password"} placeholder="Password (min. 6 characters)"
+          value={password} onChange={(e) => setPassword(e.target.value)} />
+        {error && <p style={{ color: "#B91C1C", fontSize: "0.82rem", margin: 0 }}>{error}</p>}
+        {notice && <p style={{ color: "var(--success)", fontSize: "0.82rem", margin: 0 }}>{notice}</p>}
+        <RippleButton type="submit" className="mb-btn" disabled={loading} style={{ justifyContent: "center", opacity: loading ? 0.7 : 1 }}>
+          {loading ? "Please wait…" : mode === "signup" ? "Sign up" : "Sign in"}
+        </RippleButton>
+      </form>
+      <button
+        className="mb-navlink"
+        style={{ display: "block", margin: "1rem auto 0" }}
+        onClick={() => { setMode((m) => (m === "signup" ? "signin" : "signup")); setError(null); setNotice(null); }}
+      >
+        {mode === "signup" ? "Already have an account? Sign in" : "New here? Create an account"}
+      </button>
+    </div>
+  );
+}
+
+function ChatSection({ session, onSignOut }) {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [celebrate, setCelebrate] = useState(0);
+  const [historyLoading, setHistoryLoading] = useState(!!(SUPABASE_READY && session));
+  const scrollRef = useRef(null);
+
+  const lastAssistantMood = [...messages].reverse().find((m) => m.role === "assistant")?.mood || "calm";
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages, loading]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadHistory() {
+      if (!supabaseClient || !session) {
+        setHistoryLoading(false);
+        return;
+      }
+      setHistoryLoading(true);
+      const { data, error } = await supabaseClient
+        .from("messages")
+        .select("role, content, mood, created_at")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: true });
+      if (!cancelled) {
+        if (!error && data) {
+          setMessages(data.map((d) => ({ role: d.role, content: d.content, mood: d.mood || undefined })));
+        }
+        setHistoryLoading(false);
+      }
+    }
+    loadHistory();
+    return () => { cancelled = true; };
+  }, [session?.user?.id]);
+
+  const persistMessage = (msg) => {
+    if (!supabaseClient || !session) return;
+    supabaseClient.from("messages").insert({
+      user_id: session.user.id,
+      role: msg.role,
+      content: msg.content,
+      mood: msg.mood || null,
+    }).then(({ error }) => { if (error) console.error("Couldn't save message:", error.message); });
+  };
+
+  const sendMessage = async (text) => {
+    const trimmed = text.trim();
+    if (!trimmed || loading) return;
+    const isFirst = messages.length === 0;
+    const userMsg = { role: "user", content: trimmed };
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
+    setInput("");
+    setLoading(true);
+    setError(null);
+    if (isFirst) setCelebrate((c) => c + 1);
+    persistMessage(userMsg);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system: SYSTEM_PROMPT,
+          messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || `Request failed (${response.status})`);
+      const textBlock = (data.content || []).find((b) => b.type === "text");
+      const rawReply = textBlock ? textBlock.text : "I wasn't able to generate a response — try rephrasing.";
+      const { mood, text } = parseMood(rawReply);
+      const assistantMsg = { role: "assistant", content: text.trim(), mood };
+      setMessages((prev) => [...prev, assistantMsg]);
+      persistMessage(assistantMsg);
+    } catch (err) {
+      setError("Something went wrong reaching Clarity. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    sendMessage(input);
+  };
+
+  const handleReset = async () => {
+    const hasSaved = SUPABASE_READY && session;
+    if (hasSaved && !window.confirm("This clears your saved conversation with Clarity for good. Continue?")) return;
+    if (hasSaved) {
+      const { error } = await supabaseClient.from("messages").delete().eq("user_id", session.user.id);
+      if (error) { setError("Couldn't clear your saved history. Please try again."); return; }
+    }
+    setMessages([]);
+    setError(null);
+  };
+
+  return (
+    <section id="talk" style={{ position: "relative", maxWidth: 740, margin: "0 auto", padding: "1rem 1.25rem 3rem", zIndex: 1 }}>
+      <Confetti trigger={celebrate} />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", marginBottom: "0.6rem" }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: MOOD_META[lastAssistantMood].grad, display: "inline-block", boxShadow: "0 0 0 3px rgba(34,197,94,0.2)" }} />
+        <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--success)" }}>Clarity is online and ready to help</span>
+      </div>
+      <h2 style={{ fontSize: "1.9rem", fontWeight: 800, marginBottom: "0.5rem", textAlign: "center" }}>Talk to Clarity</h2>
+      <p style={{ color: "var(--text-muted)", textAlign: "center", marginBottom: "0.6rem", fontSize: "0.94rem" }}>
+        Whatever's on your mind — a symptom, a worry, or just not knowing where to start.
+      </p>
+      {SUPABASE_READY && session && (
+        <p style={{ textAlign: "center", fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "1rem" }}>
+          Signed in as {session.user.email} ·{" "}
+          <button onClick={onSignOut} className="mb-navlink" style={{ padding: 0, fontSize: "0.78rem", display: "inline" }}>Sign out</button>
+        </p>
+      )}
+
+      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center", marginBottom: "1rem" }}>
+        {CHAT_STARTERS.map((s) => (
+          <button key={s} className="mb-chip" onClick={() => sendMessage(s)}>{s}</button>
+        ))}
+      </div>
+
+      <div className="mb-card mb-glass mb-chat-shell" style={{ boxShadow: "0 20px 50px rgba(37,99,235,0.12)" }}>
+        <div className="mb-messages" ref={scrollRef}>
+          {historyLoading && (
+            <div style={{ margin: "auto", textAlign: "center", color: "var(--text-muted)", fontSize: "0.86rem" }}>
+              Loading your conversation…
+            </div>
+          )}
+          {!historyLoading && messages.length === 0 && !loading && (
+            <div style={{ margin: "auto", textAlign: "center", color: "var(--text-muted)", maxWidth: 320 }}>
+              <div className="mb-avatar" style={{ margin: "0 auto 0.9rem" }}><Mascot /></div>
+              <p style={{ fontSize: "0.9rem", fontWeight: 600, color: "var(--text)" }}>Hi, I'm Clarity 👋</p>
+              <p style={{ fontSize: "0.86rem", marginTop: "0.3rem" }}>Type below, or tap a prompt above to begin.</p>
+            </div>
+          )}
+          {!historyLoading && messages.map((m, i) => (
+            <div key={i} className={`mb-msg-row ${m.role}`}>
+              {m.role === "assistant" && <div className="mb-avatar" style={{ background: MOOD_META[m.mood || "calm"].grad }}><Mascot size={18} mood={m.mood || "calm"} /></div>}
+              <div className={`mb-bubble ${m.role}`}>
+                <span className="mb-bubble-label">{m.role === "user" ? "You" : `Clarity${m.mood && m.mood !== "calm" ? ` · ${MOOD_META[m.mood].label}` : ""}`}</span>
+                <span style={{ whiteSpace: "pre-wrap" }}>{m.content}</span>
+              </div>
+            </div>
+          ))}
+          {loading && (
+            <div className="mb-msg-row assistant">
+              <div className="mb-avatar"><Mascot size={18} /></div>
+              <div className="mb-bubble assistant">
+                <span className="mb-typing-dot" /><span className="mb-typing-dot" /><span className="mb-typing-dot" />
+              </div>
+            </div>
+          )}
+          {error && (
+            <div className="mb-bubble assistant" style={{ background: "#FEF2F2", color: "#B91C1C" }}>{error}</div>
+          )}
+        </div>
+        <form className="mb-input-row" onSubmit={handleSubmit}>
+          <textarea
+            className="mb-input"
+            rows={1}
+            placeholder="Share what's on your mind…"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit(e);
+              }
+            }}
+          />
+          <button type="submit" className="mb-send" disabled={loading || !input.trim()} aria-label="Send">
+            <Send size={16} />
+          </button>
+        </form>
+      </div>
+
+      <button onClick={handleReset} className="mb-navlink" style={{ display: "flex", alignItems: "center", gap: "0.35rem", margin: "0.75rem auto 0" }}>
+        <RotateCcw size={13} /> Reset conversation
+      </button>
+    </section>
+  );
+}
+
+function SafetySection() {
+  return (
+    <section style={{ position: "relative", maxWidth: 740, margin: "0 auto", padding: "1rem 1.25rem 3rem", zIndex: 1 }}>
+      <div className="mb-card" style={{ padding: "1.6rem", background: "linear-gradient(135deg, #FFFBEB, #FFF)", borderColor: "#FDE68A" }}>
+        <div style={{ display: "flex", gap: "0.7rem", alignItems: "flex-start" }}>
+          <div className="mb-icon-badge" style={{ background: "var(--accent)" }}>
+            <ShieldCheck size={20} />
+          </div>
+          <div>
+            <h3 style={{ fontWeight: 700, marginBottom: "0.5rem" }}>What MediReach is — and isn't</h3>
+            <p style={{ fontSize: "0.9rem", marginBottom: "0.6rem" }}>
+              Clarity gives general medical information and encourages you toward professional care. It does not
+              diagnose conditions, prescribe treatment, or replace a licensed clinician.
+            </p>
+            <p style={{ fontSize: "0.9rem" }}>
+              <strong>In an emergency,</strong> call your local emergency number right away. <strong>In an emotional
+              crisis or if you're thinking about suicide,</strong> in the US you can call or text 988 (Suicide &
+              Crisis Lifeline) any time.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AboutSection() {
+  return (
+    <section id="about" style={{ position: "relative", maxWidth: 740, margin: "0 auto", padding: "1rem 1.25rem 4rem", zIndex: 1 }}>
+      <h2 style={{ fontSize: "1.9rem", fontWeight: 800, marginBottom: "1.25rem", textAlign: "center" }}>Why I built this</h2>
+      <div className="mb-card hoverable" style={{ padding: "1.6rem", marginBottom: "1.25rem" }}>
+        <Quote size={20} color="var(--primary)" style={{ marginBottom: "0.6rem" }} />
+        <p style={{ fontSize: "0.95rem" }}>
+          I built MediReach to make seeking medical advice feel less overwhelming and daunting. Healthcare anxiety causes many people to put off critical care, so Clarity is designed as an accessible, comforting bridge to professional medical support.
+        </p>
+      </div>
+      <div className="mb-card hoverable" style={{ padding: "1.6rem" }}>
+        <h3 style={{ fontWeight: 700, marginBottom: "0.6rem", fontSize: "1rem" }}>Sources</h3>
+        <ul style={{ margin: 0, paddingLeft: "1.1rem", fontSize: "0.85rem", color: "var(--text-muted)" }}>
+          <li style={{ marginBottom: "0.3rem" }}>PatientPoint, 2023 & 2024 Patient Confidence Index (surveys of 2,000 U.S. adults)</li>
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* APP SHELL                                                            */
+/* ------------------------------------------------------------------ */
+
+const NAV_LINKS = [
+  { id: "why", label: "Why This Matters", type: "anchor" },
+  { id: "how", label: "How It Works", type: "anchor" },
+  { id: "chat", label: "Chat with Clarity", type: "page" },
+  { id: "about", label: "About", type: "anchor" },
+];
+
+function HomePage({ onGoToChat }) {
+  return (
+    <>
+      <Hero onStart={onGoToChat} />
+      <StatsSection />
+      <HowItWorks />
+      <SafetySection />
+      <AboutSection />
+    </>
+  );
+}
+
+function ChatPage({ session, sessionLoading, onSignOut }) {
+  return (
+    <div style={{ paddingTop: "1rem" }}>
+      {sessionLoading ? (
+        <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.9rem" }}>Loading…</p>
+      ) : session || !SUPABASE_READY ? (
+        <ChatSection session={session} onSignOut={onSignOut} />
+      ) : (
+        <div style={{ maxWidth: 740, margin: "0 auto", padding: "1rem 1.25rem 3rem" }}>
+          <h2 style={{ fontSize: "1.9rem", fontWeight: 800, marginBottom: "0.5rem", textAlign: "center" }}>Talk to Clarity</h2>
+          <p style={{ color: "var(--text-muted)", textAlign: "center", marginBottom: "1.75rem", fontSize: "0.94rem" }}>
+            Sign in first so Clarity can save and remember your conversation.
+          </p>
+          <AuthPanel />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function App() {
+  const [page, setPage] = useState("home");
+  const [pendingScroll, setPendingScroll] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrollPct, setScrollPct] = useState(0);
+  const [session, setSession] = useState(null);
+  const [sessionLoading, setSessionLoading] = useState(SUPABASE_READY);
+
+  useEffect(() => {
+    if (!SUPABASE_READY) return;
+    supabaseClient.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setSessionLoading(false);
+    });
+    const { data: listener } = supabaseClient.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  const signOut = async () => {
+    if (supabaseClient) await supabaseClient.auth.signOut();
+    setMenuOpen(false);
+  };
+
+  useEffect(() => {
+    const onScroll = () => {
+      const h = document.documentElement;
+      const pct = h.scrollTop / (h.scrollHeight - h.clientHeight || 1);
+      setScrollPct(Math.min(1, Math.max(0, pct)));
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (page === "home" && pendingScroll) {
+      const id = pendingScroll;
+      const t = setTimeout(() => {
+        document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+        setPendingScroll(null);
+      }, 60);
+      return () => clearTimeout(t);
+    }
+  }, [page, pendingScroll]);
+
+  const goHome = () => {
+    setPage("home");
+    setMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const goToChat = () => {
+    setPage("chat");
+    setMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const navigate = (link) => {
+    setMenuOpen(false);
+    if (link.type === "page") {
+      setPage(link.id);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    if (page !== "home") {
+      setPendingScroll(link.id);
+      setPage("home");
+    } else {
+      document.getElementById(link.id)?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  return (
+    <div className="mb-root">
+      <GlobalStyles />
+      <Blobs />
+
+      <nav className="mb-nav">
+        <div style={{ maxWidth: 1060, margin: "0 auto", padding: "0.85rem 1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <button onClick={goHome} style={{ background: "none", border: "none", fontSize: "1.15rem", fontWeight: 800, color: "var(--text)", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--grad-1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Mascot size={17} />
+            </span>
+            MediReach
+          </button>
+          <div style={{ display: "none", gap: "1.5rem" }} className="mb-nav-desktop">
+            {NAV_LINKS.map((l) => (
+              <button
+                key={l.id}
+                className="mb-navlink"
+                style={l.type === "page" && page === l.id ? { color: "var(--primary)" } : undefined}
+                onClick={() => navigate(l)}
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
+          {SUPABASE_READY && session && (
+            <span style={{ display: "none", fontSize: "0.78rem", color: "var(--text-muted)", fontWeight: 600 }} className="mb-nav-desktop">
+              {session.user.email} · <button onClick={signOut} className="mb-navlink" style={{ padding: 0, fontSize: "0.78rem", display: "inline" }}>Sign out</button>
+            </span>
+          )}
+          <RippleButton className="mb-btn ghost" style={{ padding: "0.55rem 1.1rem", display: "none", fontSize: "0.85rem" }} id="mb-nav-cta" onClick={goToChat}>
+            {SUPABASE_READY && session ? "Talk now" : SUPABASE_READY ? "Sign in" : "Talk now"}
+          </RippleButton>
+          <button className="mb-navlink" style={{ display: "inline-flex" }} onClick={() => setMenuOpen((m) => !m)} aria-label="Toggle menu">
+            <Menu size={20} />
+          </button>
+        </div>
+        <style>{`
+          @media (min-width: 760px) {
+            .mb-nav-desktop { display: flex !important; }
+            #mb-nav-cta { display: inline-flex !important; }
+            .mb-nav > div > button[aria-label="Toggle menu"] { display: none !important; }
+          }
+        `}</style>
+        {menuOpen && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", padding: "0 1.25rem 1rem" }}>
+            {NAV_LINKS.map((l) => (
+              <button key={l.id} className="mb-navlink" style={{ textAlign: "left" }} onClick={() => navigate(l)}>{l.label}</button>
+            ))}
+            {SUPABASE_READY && session && (
+              <button className="mb-navlink" style={{ textAlign: "left" }} onClick={signOut}>Sign out ({session.user.email})</button>
+            )}
+          </div>
+        )}
+      </nav>
+      <div className="mb-progress" style={{ transform: `scaleX(${scrollPct})` }} />
+
+      {page === "home" ? <HomePage onGoToChat={goToChat} /> : <ChatPage session={session} sessionLoading={sessionLoading} onSignOut={signOut} />}
+
+      <footer style={{ position: "relative", borderTop: "1px solid var(--border)", padding: "2rem 1.25rem", textAlign: "center", zIndex: 1 }}>
+        <p style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
+          MediReach · Built by {STUDENT_NAME} · Not a substitute for professional medical advice
+        </p>
+      </footer>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+</body>
+</html>
