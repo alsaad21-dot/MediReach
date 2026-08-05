@@ -742,6 +742,11 @@ function ChatSection({ session, onSignOut }) {
           <button onClick={onSignOut} className="mb-navlink" style={{ padding: 0, fontSize: "0.78rem", display: "inline" }}>Sign out</button>
         </p>
       )}
+      {SUPABASE_READY && !session && (
+        <p style={{ textAlign: "center", fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "1rem" }}>
+          Chatting as a guest — this conversation won't be saved.
+        </p>
+      )}
 
       <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center", marginBottom: "1rem" }}>
         {CHAT_STARTERS.map((s) => (
@@ -881,11 +886,12 @@ function HomePage({ onGoToChat }) {
 }
 
 function ChatPage({ session, sessionLoading, onSignOut }) {
+  const [guest, setGuest] = useState(false);
   return (
     <div style={{ paddingTop: "1rem" }}>
       {sessionLoading ? (
         <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.9rem" }}>Loading…</p>
-      ) : session || !SUPABASE_READY ? (
+      ) : session || !SUPABASE_READY || guest ? (
         <ChatSection session={session} onSignOut={onSignOut} />
       ) : (
         <div style={{ maxWidth: 740, margin: "0 auto", padding: "1rem 1.25rem 3rem" }}>
@@ -894,6 +900,9 @@ function ChatPage({ session, sessionLoading, onSignOut }) {
             Sign in first so Clarity can save and remember your conversation.
           </p>
           <AuthPanel />
+          <p style={{ textAlign: "center", marginTop: "1.25rem" }}>
+            <button className="mb-navlink" onClick={() => setGuest(true)}>Continue as guest — skip saving history</button>
+          </p>
         </div>
       )}
     </div>
