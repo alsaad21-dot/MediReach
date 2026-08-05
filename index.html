@@ -703,7 +703,7 @@ function ChatSection({ session, onSignOut }) {
       setMessages((prev) => [...prev, assistantMsg]);
       persistMessage(assistantMsg);
     } catch (err) {
-      setError("Something went wrong reaching Clarity. Please try again.");
+      setError(err.message ? `Clarity hit an error: ${err.message}` : "Something went wrong reaching Clarity. Please try again.");
     } finally {
       setLoading(false);
     }
