@@ -37,6 +37,9 @@ const Quote = (p) => <Icon {...p} fill={p.color || "currentColor"} stroke="none"
 const HeartPulse = (p) => <Icon {...p}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /><path d="M3.22 9H8l2-3 3 6 2-3h5.78" /></Icon>;
 const Sparkles = (p) => <Icon {...p} fill={p.color || "currentColor"} stroke="none"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" /></Icon>;
 const Compass = (p) => <Icon {...p}><circle cx="12" cy="12" r="10" /><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" /></Icon>;
+const Plus = (p) => <Icon {...p}><path d="M12 5v14M5 12h14" /></Icon>;
+const X = (p) => <Icon {...p}><path d="M18 6 6 18M6 6l12 12" /></Icon>;
+const Trash = (p) => <Icon {...p}><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z" /></Icon>;
 
 /* ------------------------------------------------------------------ */
 /* CONFIG — edit the ✏️ placeholders with your own info                */
@@ -306,6 +309,72 @@ const GlobalStyles = () => (
     .mb-send:hover:not(:disabled) { transform: scale(1.08); }
     .mb-send:disabled { opacity: 0.4; cursor: default; }
     .mb-send:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+    /* ---- full-page chat workspace (ChatGPT-style) ---- */
+    .mb-root-chat { height: 100dvh; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+    .mb-chat-app { flex: 1; display: flex; min-height: 0; position: relative; z-index: 1; }
+
+    .mb-sidebar {
+      width: 272px; flex-shrink: 0; background: var(--card); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; height: 100%;
+      transition: margin-left 0.25s ease;
+    }
+    .mb-sidebar-brand {
+      display: flex; align-items: center; gap: 0.5rem; padding: 1rem 1.1rem 0.5rem;
+      background: none; border: none; cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 800; font-size: 1rem; color: var(--text);
+    }
+    .mb-sidebar-newchat {
+      margin: 0.6rem 1rem 0.8rem; padding: 0.6rem 0.8rem; border-radius: 12px;
+      border: 1.5px solid var(--border); background: #fff; cursor: pointer;
+      display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 700;
+      color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif; transition: all 0.15s ease;
+    }
+    .mb-sidebar-newchat:hover { border-color: var(--primary); background: #EFF6FF; }
+    .mb-sidebar-list { flex: 1; overflow-y: auto; padding: 0 0.6rem; display: flex; flex-direction: column; gap: 0.15rem; }
+    .mb-sidebar-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 0.4rem;
+      padding: 0.6rem 0.7rem; border-radius: 10px; cursor: pointer; font-size: 0.83rem;
+      color: var(--text); border: none; background: none; text-align: left; width: 100%;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .mb-sidebar-item:hover { background: var(--bg); }
+    .mb-sidebar-item.active { background: #E0E7FF; font-weight: 700; }
+    .mb-sidebar-item-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    .mb-sidebar-item-delete {
+      opacity: 0; background: none; border: none; cursor: pointer; color: var(--text-muted);
+      padding: 2px; border-radius: 6px; flex-shrink: 0; display: flex;
+    }
+    .mb-sidebar-item:hover .mb-sidebar-item-delete { opacity: 1; }
+    .mb-sidebar-item-delete:hover { color: #B91C1C; background: #FEF2F2; }
+    .mb-sidebar-footer { padding: 0.85rem 1.1rem; border-top: 1px solid var(--border); font-size: 0.76rem; color: var(--text-muted); }
+
+    .mb-chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; }
+    .mb-chat-topbar {
+      display: flex; align-items: center; gap: 0.7rem; padding: 0.8rem 1.25rem;
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .mb-sidebar-toggle {
+      display: none; background: none; border: none; cursor: pointer; color: var(--text); padding: 0.2rem;
+    }
+    .mb-chat-messages-full {
+      flex: 1; overflow-y: auto; padding: 1.75rem clamp(1rem, 10vw, 7rem) 1rem;
+      display: flex; flex-direction: column; gap: 1.1rem;
+    }
+    .mb-chat-input-wrap { padding: 0.75rem clamp(1rem, 10vw, 7rem) 1.5rem; flex-shrink: 0; }
+    .mb-sidebar-scrim { display: none; }
+
+    @media (max-width: 760px) {
+      .mb-sidebar {
+        position: fixed; left: 0; top: 0; bottom: 0; z-index: 60;
+        margin-left: -272px; box-shadow: 0 0 0 rgba(0,0,0,0);
+      }
+      .mb-sidebar.open { margin-left: 0; box-shadow: 8px 0 24px rgba(15,23,42,0.15); }
+      .mb-sidebar-toggle { display: inline-flex; }
+      .mb-sidebar-scrim.open {
+        display: block; position: fixed; inset: 0; background: rgba(15,23,42,0.35); z-index: 55;
+      }
+    }
 
     /* ---- confetti ---- */
     .mb-confetti-piece {
@@ -647,14 +716,18 @@ function AuthPanel() {
   );
 }
 
-function ChatSection({ session, onSignOut }) {
+function ChatWorkspace({ session, onSignOut, onGoHome }) {
+  const [conversations, setConversations] = useState([]);
+  const [conversationsLoading, setConversationsLoading] = useState(!!(SUPABASE_READY && session));
+  const [activeId, setActiveId] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [celebrate, setCelebrate] = useState(0);
-  const [historyLoading, setHistoryLoading] = useState(!!(SUPABASE_READY && session));
   const [memory, setMemory] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef(null);
 
   const lastAssistantMood = [...messages].reverse().find((m) => m.role === "assistant")?.mood || "calm";
@@ -663,42 +736,57 @@ function ChatSection({ session, onSignOut }) {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, loading]);
 
+  // Sidebar conversation list + persistent memory — loaded once per signed-in session.
   useEffect(() => {
     let cancelled = false;
-    async function loadHistory() {
+    async function load() {
       if (!supabaseClient || !session) {
-        setHistoryLoading(false);
+        setConversationsLoading(false);
         return;
       }
-      setHistoryLoading(true);
-      const [{ data, error }, { data: profile }] = await Promise.all([
-        supabaseClient
-          .from("messages")
-          .select("role, content, mood, created_at")
-          .eq("user_id", session.user.id)
-          .order("created_at", { ascending: true }),
-        supabaseClient
-          .from("profiles")
-          .select("memory")
-          .eq("user_id", session.user.id)
-          .maybeSingle(),
+      setConversationsLoading(true);
+      const [{ data: convos }, { data: profile }] = await Promise.all([
+        supabaseClient.from("conversations").select("id, title, updated_at").eq("user_id", session.user.id).order("updated_at", { ascending: false }),
+        supabaseClient.from("profiles").select("memory").eq("user_id", session.user.id).maybeSingle(),
       ]);
       if (!cancelled) {
-        if (!error && data) {
-          setMessages(data.map((d) => ({ role: d.role, content: d.content, mood: d.mood || undefined })));
-        }
+        setConversations(convos || []);
         setMemory(profile?.memory || "");
-        setHistoryLoading(false);
+        setConversationsLoading(false);
       }
     }
-    loadHistory();
+    load();
     return () => { cancelled = true; };
   }, [session?.user?.id]);
 
-  const persistMessage = (msg) => {
+  // Messages for whichever conversation is currently open.
+  useEffect(() => {
+    let cancelled = false;
+    async function loadMessages() {
+      if (!supabaseClient || !session || !activeId) {
+        setMessages([]);
+        return;
+      }
+      setMessagesLoading(true);
+      const { data, error } = await supabaseClient
+        .from("messages")
+        .select("role, content, mood, created_at")
+        .eq("conversation_id", activeId)
+        .order("created_at", { ascending: true });
+      if (!cancelled) {
+        if (!error && data) setMessages(data.map((d) => ({ role: d.role, content: d.content, mood: d.mood || undefined })));
+        setMessagesLoading(false);
+      }
+    }
+    loadMessages();
+    return () => { cancelled = true; };
+  }, [activeId, session?.user?.id]);
+
+  const persistMessage = (msg, conversationId) => {
     if (!supabaseClient || !session) return;
     supabaseClient.from("messages").insert({
       user_id: session.user.id,
+      conversation_id: conversationId,
       role: msg.role,
       content: msg.content,
       mood: msg.mood || null,
@@ -714,6 +802,30 @@ function ChatSection({ session, onSignOut }) {
     }).then(({ error }) => { if (error) console.error("Couldn't save memory:", error.message); });
   };
 
+  const touchConversation = (id) => {
+    if (!supabaseClient || !session) return;
+    const now = new Date().toISOString();
+    supabaseClient.from("conversations").update({ updated_at: now }).eq("id", id).then(() => {});
+    setConversations((prev) => {
+      const updated = prev.map((c) => (c.id === id ? { ...c, updated_at: now } : c));
+      return updated.slice().sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+    });
+  };
+
+  const ensureConversation = async (firstMessageText) => {
+    if (!supabaseClient || !session) return null;
+    const title = firstMessageText.length > 42 ? firstMessageText.slice(0, 42).trim() + "…" : firstMessageText;
+    const { data, error } = await supabaseClient
+      .from("conversations")
+      .insert({ user_id: session.user.id, title })
+      .select("id, title, updated_at")
+      .single();
+    if (error || !data) return null;
+    setConversations((prev) => [data, ...prev]);
+    setActiveId(data.id);
+    return data.id;
+  };
+
   const sendMessage = async (text) => {
     const trimmed = text.trim();
     if (!trimmed || loading) return;
@@ -725,7 +837,12 @@ function ChatSection({ session, onSignOut }) {
     setLoading(true);
     setError(null);
     if (isFirst) setCelebrate((c) => c + 1);
-    persistMessage(userMsg);
+
+    let conversationId = activeId;
+    if (SUPABASE_READY && session && !conversationId) {
+      conversationId = await ensureConversation(trimmed);
+    }
+    if (conversationId) persistMessage(userMsg, conversationId);
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
@@ -743,7 +860,10 @@ function ChatSection({ session, onSignOut }) {
       const { mood, memory: newMemory, text } = parseReply(rawReply);
       const assistantMsg = { role: "assistant", content: text.trim(), mood };
       setMessages((prev) => [...prev, assistantMsg]);
-      persistMessage(assistantMsg);
+      if (conversationId) {
+        persistMessage(assistantMsg, conversationId);
+        touchConversation(conversationId);
+      }
       if (newMemory !== null && newMemory !== memory) {
         setMemory(newMemory);
         persistMemory(newMemory);
@@ -760,61 +880,98 @@ function ChatSection({ session, onSignOut }) {
     sendMessage(input);
   };
 
-  const handleReset = async () => {
-    const hasSaved = SUPABASE_READY && session;
-    if (hasSaved && !window.confirm("This clears your saved conversation with Clarity for good. Continue?")) return;
-    if (hasSaved) {
-      const { error } = await supabaseClient.from("messages").delete().eq("user_id", session.user.id);
-      if (error) { setError("Couldn't clear your saved history. Please try again."); return; }
-    }
+  const startNewChat = () => {
+    setActiveId(null);
     setMessages([]);
     setError(null);
+    setInput("");
+    setSidebarOpen(false);
+  };
+
+  const selectConversation = (id) => {
+    setActiveId(id);
+    setError(null);
+    setSidebarOpen(false);
+  };
+
+  const deleteConversation = async (id, e) => {
+    e.stopPropagation();
+    if (!window.confirm("Delete this conversation for good?")) return;
+    const { error } = await supabaseClient.from("conversations").delete().eq("id", id);
+    if (error) { setError("Couldn't delete that conversation. Please try again."); return; }
+    setConversations((prev) => prev.filter((c) => c.id !== id));
+    if (activeId === id) startNewChat();
   };
 
   return (
-    <section id="talk" style={{ position: "relative", maxWidth: 740, margin: "0 auto", padding: "1rem 1.25rem 3rem", zIndex: 1 }}>
-      <Confetti trigger={celebrate} />
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", marginBottom: "0.6rem" }}>
-        <span style={{ width: 8, height: 8, borderRadius: "50%", background: MOOD_META[lastAssistantMood].grad, display: "inline-block", boxShadow: "0 0 0 3px rgba(34,197,94,0.2)" }} />
-        <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--success)" }}>Clarity is online and ready to help</span>
-      </div>
-      <h2 style={{ fontSize: "1.9rem", fontWeight: 800, marginBottom: "0.5rem", textAlign: "center" }}>Talk to Clarity</h2>
-      <p style={{ color: "var(--text-muted)", textAlign: "center", marginBottom: "0.6rem", fontSize: "0.94rem" }}>
-        Whatever's on your mind — a symptom, a worry, or just not knowing where to start.
-      </p>
-      {SUPABASE_READY && session && (
-        <p style={{ textAlign: "center", fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "1rem" }}>
-          Signed in as {session.user.email} ·{" "}
-          <button onClick={onSignOut} className="mb-navlink" style={{ padding: 0, fontSize: "0.78rem", display: "inline" }}>Sign out</button>
-        </p>
-      )}
-      {SUPABASE_READY && !session && (
-        <p style={{ textAlign: "center", fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "1rem" }}>
-          Chatting as a guest — this conversation won't be saved.
-        </p>
-      )}
-
-      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center", marginBottom: "1rem" }}>
-        {CHAT_STARTERS.map((s) => (
-          <button key={s} className="mb-chip" onClick={() => sendMessage(s)}>{s}</button>
-        ))}
-      </div>
-
-      <div className="mb-card mb-glass mb-chat-shell" style={{ boxShadow: "0 20px 50px rgba(37,99,235,0.12)" }}>
-        <div className="mb-messages" ref={scrollRef}>
-          {historyLoading && (
-            <div style={{ margin: "auto", textAlign: "center", color: "var(--text-muted)", fontSize: "0.86rem" }}>
-              Loading your conversation…
+    <div className="mb-chat-app">
+      <div className={`mb-sidebar-scrim ${sidebarOpen ? "open" : ""}`} onClick={() => setSidebarOpen(false)} />
+      <aside className={`mb-sidebar ${sidebarOpen ? "open" : ""}`}>
+        <button className="mb-sidebar-brand" onClick={onGoHome}>
+          <span style={{ width: 26, height: 26, borderRadius: 8, background: "var(--grad-1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Mascot size={15} />
+          </span>
+          MediReach
+        </button>
+        {SUPABASE_READY && session ? (
+          <>
+            <button className="mb-sidebar-newchat" onClick={startNewChat}>
+              <Plus size={16} /> New chat
+            </button>
+            <div className="mb-sidebar-list">
+              {conversationsLoading && <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", padding: "0.5rem 0.7rem" }}>Loading…</p>}
+              {!conversationsLoading && conversations.length === 0 && (
+                <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", padding: "0.5rem 0.7rem" }}>Your conversations will show up here.</p>
+              )}
+              {conversations.map((c) => (
+                <button key={c.id} className={`mb-sidebar-item ${activeId === c.id ? "active" : ""}`} onClick={() => selectConversation(c.id)}>
+                  <span className="mb-sidebar-item-title">{c.title}</span>
+                  <span className="mb-sidebar-item-delete" onClick={(e) => deleteConversation(c.id, e)} role="button" aria-label="Delete conversation">
+                    <Trash size={14} />
+                  </span>
+                </button>
+              ))}
             </div>
+            <div className="mb-sidebar-footer">
+              {session.user.email}
+              <br />
+              <button onClick={onSignOut} className="mb-navlink" style={{ padding: 0, fontSize: "0.76rem", marginTop: "0.3rem" }}>Sign out</button>
+            </div>
+          </>
+        ) : (
+          <div className="mb-sidebar-list" style={{ paddingTop: "0.5rem" }}>
+            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", padding: "0.5rem 0.7rem" }}>
+              Chatting as a guest — sign in to save conversations and see them listed here.
+            </p>
+          </div>
+        )}
+      </aside>
+
+      <div className="mb-chat-main">
+        <Confetti trigger={celebrate} />
+        <div className="mb-chat-topbar">
+          <button className="mb-sidebar-toggle" onClick={() => setSidebarOpen(true)} aria-label="Open conversations"><Menu size={20} /></button>
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: MOOD_META[lastAssistantMood].grad, display: "inline-block" }} />
+          <span style={{ fontSize: "0.85rem", fontWeight: 700 }}>Clarity</span>
+        </div>
+
+        <div className="mb-chat-messages-full" ref={scrollRef}>
+          {messagesLoading && (
+            <div style={{ margin: "auto", textAlign: "center", color: "var(--text-muted)", fontSize: "0.86rem" }}>Loading conversation…</div>
           )}
-          {!historyLoading && messages.length === 0 && !loading && (
-            <div style={{ margin: "auto", textAlign: "center", color: "var(--text-muted)", maxWidth: 320 }}>
+          {!messagesLoading && messages.length === 0 && !loading && (
+            <div style={{ margin: "auto", textAlign: "center", color: "var(--text-muted)", maxWidth: 380 }}>
               <div className="mb-avatar" style={{ margin: "0 auto 0.9rem" }}><Mascot /></div>
-              <p style={{ fontSize: "0.9rem", fontWeight: 600, color: "var(--text)" }}>Hi, I'm Clarity 👋</p>
-              <p style={{ fontSize: "0.86rem", marginTop: "0.3rem" }}>Type below, or tap a prompt above to begin.</p>
+              <p style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text)" }}>Hi, I'm Clarity 👋</p>
+              <p style={{ fontSize: "0.88rem", marginTop: "0.3rem" }}>Whatever's on your mind — a symptom, a worry, or just not knowing where to start.</p>
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center", marginTop: "1.1rem" }}>
+                {CHAT_STARTERS.map((s) => (
+                  <button key={s} className="mb-chip" onClick={() => sendMessage(s)}>{s}</button>
+                ))}
+              </div>
             </div>
           )}
-          {!historyLoading && messages.map((m, i) => (
+          {!messagesLoading && messages.map((m, i) => (
             <div key={i} className={`mb-msg-row ${m.role}`}>
               {m.role === "assistant" && <div className="mb-avatar" style={{ background: MOOD_META[m.mood || "calm"].grad }}><Mascot size={18} mood={m.mood || "calm"} /></div>}
               <div className={`mb-bubble ${m.role}`}>
@@ -831,34 +988,31 @@ function ChatSection({ session, onSignOut }) {
               </div>
             </div>
           )}
-          {error && (
-            <div className="mb-bubble assistant" style={{ background: "#FEF2F2", color: "#B91C1C" }}>{error}</div>
-          )}
+          {error && <div className="mb-bubble assistant" style={{ background: "#FEF2F2", color: "#B91C1C" }}>{error}</div>}
         </div>
-        <form className="mb-input-row" onSubmit={handleSubmit}>
-          <textarea
-            className="mb-input"
-            rows={1}
-            placeholder="Share what's on your mind…"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit(e);
-              }
-            }}
-          />
-          <button type="submit" className="mb-send" disabled={loading || !input.trim()} aria-label="Send">
-            <Send size={16} />
-          </button>
-        </form>
-      </div>
 
-      <button onClick={handleReset} className="mb-navlink" style={{ display: "flex", alignItems: "center", gap: "0.35rem", margin: "0.75rem auto 0" }}>
-        <RotateCcw size={13} /> Reset conversation
-      </button>
-    </section>
+        <div className="mb-chat-input-wrap">
+          <form className="mb-input-row mb-card" onSubmit={handleSubmit} style={{ borderTop: "none" }}>
+            <textarea
+              className="mb-input"
+              rows={1}
+              placeholder="Share what's on your mind…"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }}
+            />
+            <button type="submit" className="mb-send" disabled={loading || !input.trim()} aria-label="Send">
+              <Send size={16} />
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -931,26 +1085,23 @@ function HomePage({ onGoToChat }) {
   );
 }
 
-function ChatPage({ session, sessionLoading, onSignOut }) {
-  const [guest, setGuest] = useState(false);
+function ChatPage({ session, sessionLoading, onSignOut, guest, onGuest, onGoHome }) {
+  if (sessionLoading) {
+    return <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.9rem", paddingTop: "3rem" }}>Loading…</p>;
+  }
+  if (session || !SUPABASE_READY || guest) {
+    return <ChatWorkspace session={session} onSignOut={onSignOut} onGoHome={onGoHome} />;
+  }
   return (
-    <div style={{ paddingTop: "1rem" }}>
-      {sessionLoading ? (
-        <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.9rem" }}>Loading…</p>
-      ) : session || !SUPABASE_READY || guest ? (
-        <ChatSection session={session} onSignOut={onSignOut} />
-      ) : (
-        <div style={{ maxWidth: 740, margin: "0 auto", padding: "1rem 1.25rem 3rem" }}>
-          <h2 style={{ fontSize: "1.9rem", fontWeight: 800, marginBottom: "0.5rem", textAlign: "center" }}>Talk to Clarity</h2>
-          <p style={{ color: "var(--text-muted)", textAlign: "center", marginBottom: "1.75rem", fontSize: "0.94rem" }}>
-            Sign in first so Clarity can save and remember your conversation.
-          </p>
-          <AuthPanel />
-          <p style={{ textAlign: "center", marginTop: "1.25rem" }}>
-            <button className="mb-navlink" onClick={() => setGuest(true)}>Continue as guest — skip saving history</button>
-          </p>
-        </div>
-      )}
+    <div style={{ maxWidth: 740, margin: "0 auto", padding: "2.5rem 1.25rem 3rem" }}>
+      <h2 style={{ fontSize: "1.9rem", fontWeight: 800, marginBottom: "0.5rem", textAlign: "center" }}>Talk to Clarity</h2>
+      <p style={{ color: "var(--text-muted)", textAlign: "center", marginBottom: "1.75rem", fontSize: "0.94rem" }}>
+        Sign in first so Clarity can save and remember your conversations.
+      </p>
+      <AuthPanel />
+      <p style={{ textAlign: "center", marginTop: "1.25rem" }}>
+        <button className="mb-navlink" onClick={onGuest}>Continue as guest — skip saving history</button>
+      </p>
     </div>
   );
 }
@@ -962,6 +1113,7 @@ function App() {
   const [scrollPct, setScrollPct] = useState(0);
   const [session, setSession] = useState(null);
   const [sessionLoading, setSessionLoading] = useState(SUPABASE_READY);
+  const [guest, setGuest] = useState(false);
 
   useEffect(() => {
     if (!SUPABASE_READY) return;
@@ -1003,9 +1155,12 @@ function App() {
 
   const goHome = () => {
     setPage("home");
+    setGuest(false);
     setMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  const immersiveChat = page === "chat" && !sessionLoading && (session || !SUPABASE_READY || guest);
 
   const goToChat = () => {
     setPage("chat");
@@ -1029,11 +1184,11 @@ function App() {
   };
 
   return (
-    <div className="mb-root">
+    <div className={`mb-root ${immersiveChat ? "mb-root-chat" : ""}`}>
       <GlobalStyles />
-      <Blobs />
+      {!immersiveChat && <Blobs />}
 
-      <nav className="mb-nav">
+      {!immersiveChat && <nav className="mb-nav">
         <div style={{ maxWidth: 1060, margin: "0 auto", padding: "0.85rem 1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <button onClick={goHome} style={{ background: "none", border: "none", fontSize: "1.15rem", fontWeight: 800, color: "var(--text)", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--grad-1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1082,16 +1237,22 @@ function App() {
             )}
           </div>
         )}
-      </nav>
-      <div className="mb-progress" style={{ transform: `scaleX(${scrollPct})` }} />
+      </nav>}
+      {!immersiveChat && <div className="mb-progress" style={{ transform: `scaleX(${scrollPct})` }} />}
 
-      {page === "home" ? <HomePage onGoToChat={goToChat} /> : <ChatPage session={session} sessionLoading={sessionLoading} onSignOut={signOut} />}
+      {page === "home" ? (
+        <HomePage onGoToChat={goToChat} />
+      ) : (
+        <ChatPage session={session} sessionLoading={sessionLoading} onSignOut={signOut} guest={guest} onGuest={() => setGuest(true)} onGoHome={goHome} />
+      )}
 
-      <footer style={{ position: "relative", borderTop: "1px solid var(--border)", padding: "2rem 1.25rem", textAlign: "center", zIndex: 1 }}>
-        <p style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
-          MediReach · Built by {STUDENT_NAME} · Not a substitute for professional medical advice
-        </p>
-      </footer>
+      {!immersiveChat && (
+        <footer style={{ position: "relative", borderTop: "1px solid var(--border)", padding: "2rem 1.25rem", textAlign: "center", zIndex: 1 }}>
+          <p style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
+            MediReach · Built by {STUDENT_NAME} · Not a substitute for professional medical advice
+          </p>
+        </footer>
+      )}
     </div>
   );
 }
