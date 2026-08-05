@@ -1210,23 +1210,83 @@ function SafetySection() {
   );
 }
 
-function AboutSection() {
+function AboutUsPage({ onGoToChat }) {
   return (
-    <section id="about" style={{ position: "relative", maxWidth: 740, margin: "0 auto", padding: "1rem 1.25rem 4rem", zIndex: 1 }}>
-      <h2 style={{ fontSize: "1.9rem", fontWeight: 800, marginBottom: "1.25rem", textAlign: "center" }}>Why I built this</h2>
-      <div className="mb-card hoverable" style={{ padding: "1.6rem", marginBottom: "1.25rem" }}>
-        <Quote size={20} color="var(--primary)" style={{ marginBottom: "0.6rem" }} />
-        <p style={{ fontSize: "0.95rem" }}>
-          I built MediReach to make seeking medical advice feel less overwhelming and daunting. Healthcare anxiety causes many people to put off critical care, so Clarity is designed as an accessible, comforting bridge to professional medical support.
+    <div style={{ position: "relative", maxWidth: 720, margin: "0 auto", padding: "3rem 1.25rem 4rem", zIndex: 1 }}>
+      <div className="mb-avatar-hero" style={{ background: "var(--grad-1)" }}>
+        <span style={{ color: "#fff", fontWeight: 800, fontSize: "2.2rem", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>AA</span>
+      </div>
+      <h1 style={{ fontSize: "clamp(1.8rem, 4.5vw, 2.6rem)", fontWeight: 800, textAlign: "center", marginBottom: "0.3rem" }}>
+        Ali Al Saad
+      </h1>
+      <p style={{ textAlign: "center", color: "var(--text-muted)", fontWeight: 600, marginBottom: "2.25rem" }}>
+        Founder & CEO, MediReach · Year 12, Cranleigh Abu Dhabi
+      </p>
+
+      <div className="mb-card hoverable" style={{ padding: "1.75rem", marginBottom: "1.25rem" }}>
+        <Quote size={22} color="var(--primary)" style={{ marginBottom: "0.7rem" }} />
+        <p style={{ fontSize: "1.05rem", fontWeight: 600, lineHeight: 1.6 }}>
+          I don't want anyone to put off understanding their own body just because medicine feels like it wasn't built for them to understand it.
         </p>
       </div>
-      <div className="mb-card hoverable" style={{ padding: "1.6rem" }}>
+
+      <div className="mb-card" style={{ padding: "1.75rem", marginBottom: "1.25rem" }}>
+        <h2 style={{ fontSize: "1.15rem", fontWeight: 800, marginBottom: "0.75rem" }}>Who I am</h2>
+        <p style={{ fontSize: "0.95rem", lineHeight: 1.75, color: "var(--text)" }}>
+          I'm a Year 12 student at Cranleigh Abu Dhabi, and if you asked anyone who knows me, they'd tell you I talk
+          about medicine more than is probably normal for a seventeen-year-old. It started as curiosity — the kind
+          that has you reading about the anatomy of the eye at 11pm for no real reason other than that it's
+          fascinating — and it's slowly turned into something closer to certainty: I want to become an
+          ophthalmologist. Not because it sounds impressive, but because there's something quietly remarkable to me
+          about a part of medicine dedicated entirely to protecting how people experience the world.
+        </p>
+      </div>
+
+      <div className="mb-card" style={{ padding: "1.75rem", marginBottom: "1.25rem" }}>
+        <h2 style={{ fontSize: "1.15rem", fontWeight: 800, marginBottom: "0.75rem" }}>Why I started MediReach</h2>
+        <p style={{ fontSize: "0.95rem", lineHeight: 1.75, color: "var(--text)", marginBottom: "1rem" }}>
+          Long before I can call myself a doctor, I wanted to build something that reflects why I care about
+          medicine in the first place — not the prestige of it, but the access to it. MediReach started from a
+          pretty simple, frustrating observation: most people don't avoid the doctor because they don't care about
+          their health. They avoid it because healthcare feels complicated, intimidating, or like it's spoken in a
+          language nobody ever taught them. A weird symptom turns into three hours of conflicting search results. A
+          checkup gets pushed back because nobody wants to ask a "stupid question." That gap — between being
+          worried and being informed — is exactly where people get stuck, and sometimes where real harm quietly
+          happens.
+        </p>
+        <p style={{ fontSize: "0.95rem", lineHeight: 1.75, color: "var(--text)" }}>
+          So I built MediReach to close that gap. Clarity, the AI at the center of it, exists to do the thing I
+          wish more of healthcare did by default: meet people exactly where they are, explain what's going on in
+          language that actually makes sense, and be honest — genuinely warm when someone's scared, and genuinely
+          direct the moment something needs real attention. The goal was never for Clarity to replace a doctor.
+          It's to be the calmer, clearer first step that gets someone to one — faster, and a lot less afraid.
+        </p>
+      </div>
+
+      <div className="mb-card" style={{ padding: "1.75rem", marginBottom: "1.25rem" }}>
+        <h2 style={{ fontSize: "1.15rem", fontWeight: 800, marginBottom: "0.75rem" }}>Where this is going</h2>
+        <p style={{ fontSize: "0.95rem", lineHeight: 1.75, color: "var(--text)" }}>
+          I'm still in school, and I won't pretend MediReach is a finished product — it's the beginning of
+          something I plan to keep building for as long as I'm working toward becoming a doctor myself. But I
+          believe medicine shouldn't feel like a locked door. I'd rather spend the time I have trying to pry it
+          open a little wider, one honest, unhurried conversation at a time.
+        </p>
+      </div>
+
+      <div className="mb-card" style={{ padding: "1.6rem", marginBottom: "2rem" }}>
         <h3 style={{ fontWeight: 700, marginBottom: "0.6rem", fontSize: "1rem" }}>Sources</h3>
         <ul style={{ margin: 0, paddingLeft: "1.1rem", fontSize: "0.85rem", color: "var(--text-muted)" }}>
           <li style={{ marginBottom: "0.3rem" }}>PatientPoint, 2023 & 2024 Patient Confidence Index (surveys of 2,000 U.S. adults)</li>
         </ul>
       </div>
-    </section>
+
+      <div style={{ textAlign: "center" }}>
+        <p style={{ fontWeight: 700, marginBottom: "1.25rem" }}>— Ali Al Saad, Founder & CEO</p>
+        <RippleButton className="mb-btn" onClick={onGoToChat}>
+          <MessageCircle size={17} /> Talk to Clarity
+        </RippleButton>
+      </div>
+    </div>
   );
 }
 
@@ -1238,7 +1298,7 @@ const NAV_LINKS = [
   { id: "why", label: "Why This Matters", type: "anchor" },
   { id: "how", label: "How It Works", type: "anchor" },
   { id: "chat", label: "Chat with Clarity", type: "page" },
-  { id: "about", label: "About", type: "anchor" },
+  { id: "about", label: "About Us", type: "page" },
 ];
 
 function HomePage({ onGoToChat }) {
@@ -1248,7 +1308,6 @@ function HomePage({ onGoToChat }) {
       <StatsSection />
       <HowItWorks />
       <SafetySection />
-      <AboutSection />
     </>
   );
 }
@@ -1410,6 +1469,8 @@ function App() {
 
       {page === "home" ? (
         <HomePage onGoToChat={goToChat} />
+      ) : page === "about" ? (
+        <AboutUsPage onGoToChat={goToChat} />
       ) : (
         <ChatPage session={session} sessionLoading={sessionLoading} onSignOut={signOut} guest={guest} onGuest={() => setGuest(true)} onGoHome={goHome} />
       )}
