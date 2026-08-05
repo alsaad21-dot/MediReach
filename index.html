@@ -264,20 +264,11 @@ const GlobalStyles = () => (
     .mb-avatar-hero:hover { filter: brightness(1.08); }
     .mb-avatar-hero:active { filter: brightness(0.95); }
 
-    /* ---- mascot life: blinking + talking ---- */
-    .mb-eye { transform-box: fill-box; transform-origin: center; animation: mb-blink 4.8s ease-in-out infinite; }
-    .mb-eye:nth-of-type(2) { animation-delay: 0.08s; }
-    @keyframes mb-blink {
-      0%, 92%, 100% { transform: scaleY(1); }
-      95% { transform: scaleY(0.12); }
-    }
-    .mb-mouth-talking {
-      transform-box: fill-box; transform-origin: center;
-      animation: mb-talk 0.32s ease-in-out infinite;
-    }
-    @keyframes mb-talk {
-      0%, 100% { transform: scaleY(1); }
-      50% { transform: scaleY(0.45); }
+    /* ---- logo mark: soft pulse while Clarity is composing a reply ---- */
+    .mb-logo-talking { animation: mb-logo-pulse 0.7s ease-in-out infinite; }
+    @keyframes mb-logo-pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(0.9); opacity: 0.75; }
     }
 
     /* ---- chat ---- */
@@ -445,53 +436,26 @@ function RippleButton({ className, children, onClick, ...rest }) {
 /* Mood vocabulary Clarity's replies are tagged with (see SYSTEM_PROMPT).   */
 /* Each mood drives the mascot's face, plus a gradient/label for the UI.    */
 const MOOD_META = {
-  calm:        { label: "Calm",        grad: "var(--grad-1)", mouth: "M13 25c2.2 2.2 11.8 2.2 14 0", brows: null, wink: false },
-  caring:      { label: "Caring",      grad: "var(--grad-1)", mouth: "M13 24.5c2.2 2.6 11.8 2.6 14 0", brows: null, wink: false },
-  concerned:   { label: "Concerned",   grad: "linear-gradient(135deg, #F59E0B, #EA580C)", mouth: "M14 26.5c1.8-1.4 10.2-1.4 12 0", brows: "M11 14.5 15 16.2M29 14.5 25 16.2", wink: false },
-  urgent:      { label: "Urgent",      grad: "linear-gradient(135deg, #EF4444, #B91C1C)", mouth: "M17.2 26a2.8 1.3 0 1 0 5.6 0 2.8 1.3 0 1 0-5.6 0", mouthFill: true, brows: "M10.5 13.2 15.5 16M29.5 13.2 24.5 16", wink: false },
-  encouraging: { label: "Encouraging", grad: "var(--grad-2)", mouth: "M12 24c2.6 3.4 13.4 3.4 16 0", brows: "M11 15 15.5 13.5M29 15 24.5 13.5", wink: false },
-  celebratory: { label: "Celebratory", grad: "linear-gradient(135deg, #F59E0B, #22C55E)", mouth: "M11.5 23.5c2.8 4 14.2 4 17 0", brows: "M11 14.5 15.5 12.8M29 14.5 24.5 12.8", wink: false },
-  playful:     { label: "Playful",     grad: "linear-gradient(135deg, #2563EB, #A855F7)", mouth: "M13 24.5c2.2 2.6 11.8 2.6 14 0", brows: "M11 15 15.5 13.2", wink: true },
-  somber:      { label: "Somber",      grad: "linear-gradient(135deg, #64748B, #334155)", mouth: "M14.5 26c1.6-1 9.4-1 11 0", brows: "M11.5 15 15 15.6M28.5 15 25 15.6", wink: false },
+  calm:        { label: "Calm",        grad: "var(--grad-1)" },
+  caring:      { label: "Caring",      grad: "var(--grad-1)" },
+  concerned:   { label: "Concerned",   grad: "linear-gradient(135deg, #F59E0B, #EA580C)" },
+  urgent:      { label: "Urgent",      grad: "linear-gradient(135deg, #EF4444, #B91C1C)" },
+  encouraging: { label: "Encouraging", grad: "var(--grad-2)" },
+  celebratory: { label: "Celebratory", grad: "linear-gradient(135deg, #F59E0B, #22C55E)" },
+  playful:     { label: "Playful",     grad: "linear-gradient(135deg, #2563EB, #A855F7)" },
+  somber:      { label: "Somber",      grad: "linear-gradient(135deg, #64748B, #334155)" },
 };
 const MOOD_NAMES = Object.keys(MOOD_META);
 
-/* Clarity's character art — a friendly robot head with a medical badge.    */
-/* The mood-driven face (eyes/brows/mouth) is the same path data used       */
-/* everywhere else, just transformed from its original 40x40 coordinate    */
-/* space onto this head's face region, so blinking/talking/wink all still  */
-/* work unchanged.                                                          */
+/* Clarity's mark — two interlocking "C" arcs, matching the brand logo.     */
+/* `talking` gives it a soft pulse while Clarity composes a reply.          */
 function Mascot({ size = 22, mood = "calm", talking = false }) {
-  const m = MOOD_META[mood] || MOOD_META.calm;
   return (
-    <svg width={size} height={size} viewBox="80 50 352 352" fill="none">
-      <line x1="256" y1="118" x2="256" y2="90" stroke="#FFFFFF" strokeWidth="8" strokeLinecap="round" />
-      <circle cx="256" cy="80" r="12" fill="#5EEAD4" />
-
-      <rect x="146" y="118" width="220" height="190" rx="56" fill="#F4FBFC" stroke="#0B4A57" strokeWidth="6" />
-      <rect x="122" y="185" width="26" height="56" rx="13" fill="#EAF6F7" stroke="#0B4A57" strokeWidth="6" />
-      <rect x="364" y="185" width="26" height="56" rx="13" fill="#EAF6F7" stroke="#0B4A57" strokeWidth="6" />
-
-      <g transform="translate(109.33 73.07) scale(7.333)">
-        {m.brows && <path d={m.brows} stroke="#0E7490" strokeWidth="1.6" strokeLinecap="round" fill="none" opacity="0.8" />}
-        <circle className="mb-eye" cx="14" cy="18" r="2.4" fill="#0E7490" />
-        <circle cx="14.9" cy="17.1" r="0.7" fill="#fff" />
-        {m.wink ? (
-          <path d="M23.6 18h5" stroke="#0E7490" strokeWidth="1.8" strokeLinecap="round" />
-        ) : (
-          <>
-            <circle className="mb-eye" cx="26" cy="18" r="2.4" fill="#0E7490" />
-            <circle cx="26.9" cy="17.1" r="0.7" fill="#fff" />
-          </>
-        )}
-        <path className={talking ? "mb-mouth-talking" : ""} d={m.mouth} stroke="#0E7490" strokeWidth="2.2" strokeLinecap="round" fill={m.mouthFill ? "#0E7490" : "none"} />
-      </g>
-
-      <g transform="translate(256,340)">
-        <circle r="46" fill="#FFFFFF" stroke="#0B4A57" strokeWidth="6" />
-        <rect x="-8" y="-26" width="16" height="52" rx="4" fill="#0EA5B0" />
-        <rect x="-26" y="-8" width="52" height="16" rx="4" fill="#0EA5B0" />
-      </g>
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" className={talking ? "mb-logo-talking" : ""}>
+      <circle cx="39" cy="50" r="26" stroke="#FFFFFF" strokeWidth="15" strokeLinecap="round"
+        strokeDasharray="122.5 40.85" transform="rotate(-40 39 50)" />
+      <circle cx="61" cy="50" r="26" stroke="#FFFFFF" strokeOpacity="0.75" strokeWidth="15" strokeLinecap="round"
+        strokeDasharray="122.5 40.85" transform="rotate(140 61 50)" />
     </svg>
   );
 }
@@ -625,13 +589,13 @@ function Blobs() {
 }
 
 function Hero({ onStart }) {
-  const [heroMood, setHeroMood] = useState("calm");
+  const [reacting, setReacting] = useState(false);
   const reactTimeout = useRef(null);
 
-  const react = (mood) => {
-    setHeroMood(mood);
+  const react = () => {
+    setReacting(true);
     if (reactTimeout.current) clearTimeout(reactTimeout.current);
-    reactTimeout.current = setTimeout(() => setHeroMood("calm"), 1400);
+    reactTimeout.current = setTimeout(() => setReacting(false), 900);
   };
 
   useEffect(() => () => { if (reactTimeout.current) clearTimeout(reactTimeout.current); }, []);
@@ -643,14 +607,14 @@ function Hero({ onStart }) {
       </p>
       <div
         className="mb-avatar-hero"
-        onMouseEnter={() => react("playful")}
-        onClick={() => react("celebratory")}
+        onMouseEnter={react}
+        onClick={react}
         role="button"
         tabIndex={0}
         aria-label="Say hi to Clarity"
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") react("celebratory"); }}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") react(); }}
       >
-        <Mascot size={118} mood={heroMood} />
+        <Mascot size={118} talking={reacting} />
       </div>
       <h1 style={{ fontSize: "clamp(2.1rem, 5.5vw, 3.3rem)", fontWeight: 800, margin: "1rem 0 1rem", lineHeight: 1.1 }}>
         Healthcare questions,{" "}
@@ -1210,9 +1174,28 @@ function SafetySection() {
   );
 }
 
+const ABOUT_CARDS = [
+  {
+    title: "Who I am",
+    body: "I'm 16, in Year 12 at Cranleigh Abu Dhabi, and genuinely obsessed with medicine — especially eyes. I want to become an ophthalmologist one day.",
+  },
+  {
+    title: "Why I started MediReach",
+    body: "Most people don't skip the doctor because they don't care. They skip it because healthcare feels confusing. Clarity explains things simply, honestly, and always points you toward real care.",
+  },
+  {
+    title: "Where this is going",
+    body: "MediReach is just getting started. I'll keep building it for as long as I'm working toward becoming a doctor myself.",
+  },
+  {
+    title: "Sources",
+    body: "PatientPoint, 2023 & 2024 Patient Confidence Index (surveys of 2,000 U.S. adults).",
+  },
+];
+
 function AboutUsPage({ onGoToChat }) {
   return (
-    <div style={{ position: "relative", maxWidth: 720, margin: "0 auto", padding: "3rem 1.25rem 4rem", zIndex: 1 }}>
+    <div style={{ position: "relative", maxWidth: 860, margin: "0 auto", padding: "3rem 1.25rem 4rem", zIndex: 1 }}>
       <div className="mb-avatar-hero" style={{ background: "var(--grad-1)" }}>
         <span style={{ color: "#fff", fontWeight: 800, fontSize: "2.2rem", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>AA</span>
       </div>
@@ -1230,54 +1213,13 @@ function AboutUsPage({ onGoToChat }) {
         </p>
       </div>
 
-      <div className="mb-card" style={{ padding: "1.75rem", marginBottom: "1.25rem" }}>
-        <h2 style={{ fontSize: "1.15rem", fontWeight: 800, marginBottom: "0.75rem" }}>Who I am</h2>
-        <p style={{ fontSize: "0.95rem", lineHeight: 1.75, color: "var(--text)" }}>
-          I'm a Year 12 student at Cranleigh Abu Dhabi, and if you asked anyone who knows me, they'd tell you I talk
-          about medicine more than is probably normal for a seventeen-year-old. It started as curiosity — the kind
-          that has you reading about the anatomy of the eye at 11pm for no real reason other than that it's
-          fascinating — and it's slowly turned into something closer to certainty: I want to become an
-          ophthalmologist. Not because it sounds impressive, but because there's something quietly remarkable to me
-          about a part of medicine dedicated entirely to protecting how people experience the world.
-        </p>
-      </div>
-
-      <div className="mb-card" style={{ padding: "1.75rem", marginBottom: "1.25rem" }}>
-        <h2 style={{ fontSize: "1.15rem", fontWeight: 800, marginBottom: "0.75rem" }}>Why I started MediReach</h2>
-        <p style={{ fontSize: "0.95rem", lineHeight: 1.75, color: "var(--text)", marginBottom: "1rem" }}>
-          Long before I can call myself a doctor, I wanted to build something that reflects why I care about
-          medicine in the first place — not the prestige of it, but the access to it. MediReach started from a
-          pretty simple, frustrating observation: most people don't avoid the doctor because they don't care about
-          their health. They avoid it because healthcare feels complicated, intimidating, or like it's spoken in a
-          language nobody ever taught them. A weird symptom turns into three hours of conflicting search results. A
-          checkup gets pushed back because nobody wants to ask a "stupid question." That gap — between being
-          worried and being informed — is exactly where people get stuck, and sometimes where real harm quietly
-          happens.
-        </p>
-        <p style={{ fontSize: "0.95rem", lineHeight: 1.75, color: "var(--text)" }}>
-          So I built MediReach to close that gap. Clarity, the AI at the center of it, exists to do the thing I
-          wish more of healthcare did by default: meet people exactly where they are, explain what's going on in
-          language that actually makes sense, and be honest — genuinely warm when someone's scared, and genuinely
-          direct the moment something needs real attention. The goal was never for Clarity to replace a doctor.
-          It's to be the calmer, clearer first step that gets someone to one — faster, and a lot less afraid.
-        </p>
-      </div>
-
-      <div className="mb-card" style={{ padding: "1.75rem", marginBottom: "1.25rem" }}>
-        <h2 style={{ fontSize: "1.15rem", fontWeight: 800, marginBottom: "0.75rem" }}>Where this is going</h2>
-        <p style={{ fontSize: "0.95rem", lineHeight: 1.75, color: "var(--text)" }}>
-          I'm still in school, and I won't pretend MediReach is a finished product — it's the beginning of
-          something I plan to keep building for as long as I'm working toward becoming a doctor myself. But I
-          believe medicine shouldn't feel like a locked door. I'd rather spend the time I have trying to pry it
-          open a little wider, one honest, unhurried conversation at a time.
-        </p>
-      </div>
-
-      <div className="mb-card" style={{ padding: "1.6rem", marginBottom: "2rem" }}>
-        <h3 style={{ fontWeight: 700, marginBottom: "0.6rem", fontSize: "1rem" }}>Sources</h3>
-        <ul style={{ margin: 0, paddingLeft: "1.1rem", fontSize: "0.85rem", color: "var(--text-muted)" }}>
-          <li style={{ marginBottom: "0.3rem" }}>PatientPoint, 2023 & 2024 Patient Confidence Index (surveys of 2,000 U.S. adults)</li>
-        </ul>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.1rem", marginBottom: "2rem" }}>
+        {ABOUT_CARDS.map((c) => (
+          <div key={c.title} className="mb-card hoverable" style={{ padding: "1.5rem" }}>
+            <h2 style={{ fontSize: "1.05rem", fontWeight: 800, marginBottom: "0.6rem" }}>{c.title}</h2>
+            <p style={{ fontSize: "0.9rem", lineHeight: 1.6, color: c.title === "Sources" ? "var(--text-muted)" : "var(--text)" }}>{c.body}</p>
+          </div>
+        ))}
       </div>
 
       <div style={{ textAlign: "center" }}>
