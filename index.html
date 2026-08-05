@@ -446,7 +446,7 @@ const MOOD_META = {
   calm:        { label: "Calm",        grad: "var(--grad-1)", mouth: "M13 25c2.2 2.2 11.8 2.2 14 0", brows: null, wink: false },
   caring:      { label: "Caring",      grad: "var(--grad-1)", mouth: "M13 24.5c2.2 2.6 11.8 2.6 14 0", brows: null, wink: false },
   concerned:   { label: "Concerned",   grad: "linear-gradient(135deg, #F59E0B, #EA580C)", mouth: "M14 26.5c1.8-1.4 10.2-1.4 12 0", brows: "M11 14.5 15 16.2M29 14.5 25 16.2", wink: false },
-  urgent:      { label: "Urgent",      grad: "linear-gradient(135deg, #EF4444, #B91C1C)", mouth: "M17.2 26a2.8 1.3 0 1 0 5.6 0 2.8 1.3 0 1 0-5.6 0", mouthFill: "#fff", brows: "M10.5 13.2 15.5 16M29.5 13.2 24.5 16", wink: false },
+  urgent:      { label: "Urgent",      grad: "linear-gradient(135deg, #EF4444, #B91C1C)", mouth: "M17.2 26a2.8 1.3 0 1 0 5.6 0 2.8 1.3 0 1 0-5.6 0", mouthFill: true, brows: "M10.5 13.2 15.5 16M29.5 13.2 24.5 16", wink: false },
   encouraging: { label: "Encouraging", grad: "var(--grad-2)", mouth: "M12 24c2.6 3.4 13.4 3.4 16 0", brows: "M11 15 15.5 13.5M29 15 24.5 13.5", wink: false },
   celebratory: { label: "Celebratory", grad: "linear-gradient(135deg, #F59E0B, #22C55E)", mouth: "M11.5 23.5c2.8 4 14.2 4 17 0", brows: "M11 14.5 15.5 12.8M29 14.5 24.5 12.8", wink: false },
   playful:     { label: "Playful",     grad: "linear-gradient(135deg, #2563EB, #A855F7)", mouth: "M13 24.5c2.2 2.6 11.8 2.6 14 0", brows: "M11 15 15.5 13.2", wink: true },
@@ -454,18 +454,42 @@ const MOOD_META = {
 };
 const MOOD_NAMES = Object.keys(MOOD_META);
 
+/* Clarity's character art — a friendly robot head with a medical badge.    */
+/* The mood-driven face (eyes/brows/mouth) is the same path data used       */
+/* everywhere else, just transformed from its original 40x40 coordinate    */
+/* space onto this head's face region, so blinking/talking/wink all still  */
+/* work unchanged.                                                          */
 function Mascot({ size = 22, mood = "calm", talking = false }) {
   const m = MOOD_META[mood] || MOOD_META.calm;
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
-      {m.brows && <path d={m.brows} stroke="#fff" strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.85" />}
-      <circle className="mb-eye" cx="14" cy="18" r="2.4" fill="#fff" />
-      {m.wink ? (
-        <path d="M23.6 18h5" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-      ) : (
-        <circle className="mb-eye" cx="26" cy="18" r="2.4" fill="#fff" />
-      )}
-      <path className={talking ? "mb-mouth-talking" : ""} d={m.mouth} stroke="#fff" strokeWidth="2.4" strokeLinecap="round" fill={m.mouthFill || "none"} />
+    <svg width={size} height={size} viewBox="0 0 512 512" fill="none">
+      <line x1="256" y1="118" x2="256" y2="90" stroke="#FFFFFF" strokeWidth="8" strokeLinecap="round" />
+      <circle cx="256" cy="80" r="12" fill="#5EEAD4" />
+
+      <rect x="146" y="118" width="220" height="190" rx="56" fill="#F4FBFC" stroke="#0B4A57" strokeWidth="6" />
+      <rect x="122" y="185" width="26" height="56" rx="13" fill="#EAF6F7" stroke="#0B4A57" strokeWidth="6" />
+      <rect x="364" y="185" width="26" height="56" rx="13" fill="#EAF6F7" stroke="#0B4A57" strokeWidth="6" />
+
+      <g transform="translate(109.33 73.07) scale(7.333)">
+        {m.brows && <path d={m.brows} stroke="#0E7490" strokeWidth="1.6" strokeLinecap="round" fill="none" opacity="0.8" />}
+        <circle className="mb-eye" cx="14" cy="18" r="2.4" fill="#0E7490" />
+        <circle cx="14.9" cy="17.1" r="0.7" fill="#fff" />
+        {m.wink ? (
+          <path d="M23.6 18h5" stroke="#0E7490" strokeWidth="1.8" strokeLinecap="round" />
+        ) : (
+          <>
+            <circle className="mb-eye" cx="26" cy="18" r="2.4" fill="#0E7490" />
+            <circle cx="26.9" cy="17.1" r="0.7" fill="#fff" />
+          </>
+        )}
+        <path className={talking ? "mb-mouth-talking" : ""} d={m.mouth} stroke="#0E7490" strokeWidth="2.2" strokeLinecap="round" fill={m.mouthFill ? "#0E7490" : "none"} />
+      </g>
+
+      <g transform="translate(256,340)">
+        <circle r="46" fill="#FFFFFF" stroke="#0B4A57" strokeWidth="6" />
+        <rect x="-8" y="-26" width="16" height="52" rx="4" fill="#0EA5B0" />
+        <rect x="-26" y="-8" width="52" height="16" rx="4" fill="#0EA5B0" />
+      </g>
     </svg>
   );
 }
