@@ -696,8 +696,8 @@ function ChatSection({ session, onSignOut }) {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data?.error || `Request failed (${response.status})`);
-      const textBlock = (data.content || []).find((b) => b.type === "text");
-      const rawReply = textBlock ? textBlock.text : "I wasn't able to generate a response — try rephrasing.";
+      const parts = data.candidates?.[0]?.content?.parts || [];
+      const rawReply = parts.map((p) => p.text).join("") || "I wasn't able to generate a response — try rephrasing.";
       const { mood, text } = parseMood(rawReply);
       const assistantMsg = { role: "assistant", content: text.trim(), mood };
       setMessages((prev) => [...prev, assistantMsg]);

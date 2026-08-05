@@ -1,27 +1,34 @@
+// Uses Google's Gemini API (free tier, no credit card required).
+// Get a free key at https://aistudio.google.com/apikey and set it as the
+// GEMINI_API_KEY environment variable in your Vercel project settings.
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-3-haiku-20240307',
-        max_tokens: 1000,
-        system: req.body.system,
-        messages: req.body.messages,
-      }),
-    });
+    const { system, messages } = req.body;
+    const contents = (messages || []).map((m) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    }));
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: system }] },
+          contents,
+          generationConfig: { maxOutputTokens: 1000 },
+        }),
+      }
+    );
 
     const data = await response.json();
-    if (!response.ok || data.type === 'error') {
-      const message = data?.error?.message || `Anthropic API error (${response.status})`;
+    if (!response.ok || data.error) {
+      const message = data?.error?.message || `Gemini API error (${response.status})`;
       return res.status(response.status || 502).json({ error: message });
     }
     return res.status(200).json(data);
