@@ -93,11 +93,12 @@ How you behave:
 - If someone expresses hesitation, fear, or shame about seeing a doctor, respond to that feeling directly and supportively before moving to information.
 - Keep responses concise — a few short paragraphs, unless asked for more.`;
 
-function buildSystemPrompt(memory) {
+function buildSystemPrompt(memory, fullName) {
   const known = memory && memory.trim()
     ? memory.trim()
-    : "Nothing yet — you haven't spoken with this person before, so introduce yourself normally.";
-  return `${SYSTEM_PROMPT_BASE}\n\nWhat you currently remember about this specific person from earlier conversations:\n${known}`;
+    : "Nothing else yet — you haven't spoken with them before this, so don't presume any history.";
+  const nameLine = fullName ? `Their name is ${fullName} — address them by first name naturally sometimes, not in every message.\n` : "";
+  return `${SYSTEM_PROMPT_BASE}\n\nWhat you currently know about this specific person:\n${nameLine}${known}`;
 }
 
 const STATS = [
@@ -470,7 +471,25 @@ function parseReply(raw) {
     text = text.slice(memoryMatch[0].length);
   }
 
-  return { mood, memory, text };
+  let title = null;
+  const titleMatch = /^\s*\[\[\s*title\s*:([^\]]*)\]\]\s*/i.exec(text);
+  if (titleMatch) {
+    title = titleMatch[1].trim();
+    text = text.slice(titleMatch[0].length);
+  }
+
+  return { mood, memory, title, text };
+}
+
+/* Turns **bold** markdown into real <strong> tags; everything else stays  */
+/* as plain text (the message bubble already preserves line breaks).       */
+function renderInline(text) {
+  const parts = String(text || "").split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) =>
+    part.startsWith("**") && part.endsWith("**") && part.length > 4
+      ? <strong key={i}>{part.slice(2, -2)}</strong>
+      : <React.Fragment key={i}>{part}</React.Fragment>
+  );
 }
 
 function Confetti({ trigger }) {
@@ -646,6 +665,8 @@ function AuthPanel() {
   const [mode, setMode] = useState("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
@@ -669,7 +690,11 @@ function AuthPanel() {
     setNotice(null);
     try {
       if (mode === "signup") {
-        const { error } = await supabaseClient.auth.signUp({ email, password });
+        const { error } = await supabaseClient.auth.signUp({
+          email,
+          password,
+          options: { data: { first_name: firstName.trim(), last_name: lastName.trim() } },
+        });
         if (error) throw error;
         setNotice("Almost there — check your email to confirm your account, then sign in below.");
         setMode("signin");
@@ -694,6 +719,14 @@ function AuthPanel() {
         Sign in so Clarity can remember your conversations across visits.
       </p>
       <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+        {mode === "signup" && (
+          <div style={{ display: "flex", gap: "0.6rem" }}>
+            <input className="mb-input" type="text" required autoComplete="given-name" placeholder="First name"
+              value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+            <input className="mb-input" type="text" required autoComplete="family-name" placeholder="Last name"
+              value={lastName} onChange={(e) => setLastName(e.target.value)} />
+          </div>
+        )}
         <input className="mb-input" type="email" required autoComplete="email" placeholder="Email"
           value={email} onChange={(e) => setEmail(e.target.value)} />
         <input className="mb-input" type="password" required minLength={6}
@@ -730,6 +763,8 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef(null);
 
+  const firstName = session?.user?.user_metadata?.first_name || "";
+  const fullName = [session?.user?.user_metadata?.first_name, session?.user?.user_metadata?.last_name].filter(Boolean).join(" ");
   const lastAssistantMood = [...messages].reverse().find((m) => m.role === "assistant")?.mood || "calm";
 
   useEffect(() => {
@@ -812,18 +847,24 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
     });
   };
 
-  const ensureConversation = async (firstMessageText) => {
+  const ensureConversation = async () => {
     if (!supabaseClient || !session) return null;
-    const title = firstMessageText.length > 42 ? firstMessageText.slice(0, 42).trim() + "…" : firstMessageText;
     const { data, error } = await supabaseClient
       .from("conversations")
-      .insert({ user_id: session.user.id, title })
+      .insert({ user_id: session.user.id, title: "New conversation" })
       .select("id, title, updated_at")
       .single();
     if (error || !data) return null;
     setConversations((prev) => [data, ...prev]);
     setActiveId(data.id);
     return data.id;
+  };
+
+  const renameConversation = (id, title) => {
+    if (!supabaseClient || !session || !title) return;
+    supabaseClient.from("conversations").update({ title }).eq("id", id)
+      .then(({ error }) => { if (error) console.error("Couldn't rename conversation:", error.message); });
+    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title } : c)));
   };
 
   const sendMessage = async (text) => {
@@ -840,16 +881,21 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
 
     let conversationId = activeId;
     if (SUPABASE_READY && session && !conversationId) {
-      conversationId = await ensureConversation(trimmed);
+      conversationId = await ensureConversation();
     }
     if (conversationId) persistMessage(userMsg, conversationId);
+
+    let systemPrompt = buildSystemPrompt(memory, fullName);
+    if (isFirst) {
+      systemPrompt += `\n\nThis is the first message of a brand-new conversation. Immediately after the mood and memory tags, on its own line, also output a third tag in the exact form [[title: X]] where X is a short 2-4 word label for the topic of this conversation (e.g. "Headache concerns", "Chest pain worry", "Checkup anxiety"). Keep it short, plain, and human — not clinical jargon. This tag is stripped before the person sees your reply, same as the others.`;
+    }
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          system: buildSystemPrompt(memory),
+          system: systemPrompt,
           messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
         }),
       });
@@ -857,12 +903,13 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
       if (!response.ok) throw new Error(data?.error || `Request failed (${response.status})`);
       const parts = data.candidates?.[0]?.content?.parts || [];
       const rawReply = parts.map((p) => p.text).join("") || "I wasn't able to generate a response — try rephrasing.";
-      const { mood, memory: newMemory, text } = parseReply(rawReply);
+      const { mood, memory: newMemory, title: newTitle, text } = parseReply(rawReply);
       const assistantMsg = { role: "assistant", content: text.trim(), mood };
       setMessages((prev) => [...prev, assistantMsg]);
       if (conversationId) {
         persistMessage(assistantMsg, conversationId);
         touchConversation(conversationId);
+        if (isFirst && newTitle) renameConversation(conversationId, newTitle);
       }
       if (newMemory !== null && newMemory !== memory) {
         setMemory(newMemory);
@@ -933,6 +980,7 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
               ))}
             </div>
             <div className="mb-sidebar-footer">
+              {fullName && <div style={{ fontWeight: 700, color: "var(--text)", marginBottom: "0.15rem" }}>{fullName}</div>}
               {session.user.email}
               <br />
               <button onClick={onSignOut} className="mb-navlink" style={{ padding: 0, fontSize: "0.76rem", marginTop: "0.3rem" }}>Sign out</button>
@@ -952,7 +1000,9 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
         <div className="mb-chat-topbar">
           <button className="mb-sidebar-toggle" onClick={() => setSidebarOpen(true)} aria-label="Open conversations"><Menu size={20} /></button>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: MOOD_META[lastAssistantMood].grad, display: "inline-block" }} />
-          <span style={{ fontSize: "0.85rem", fontWeight: 700 }}>Clarity</span>
+          <span style={{ fontSize: "0.85rem", fontWeight: 700 }}>
+            {firstName ? `Welcome back, ${firstName}` : "Clarity"}
+          </span>
         </div>
 
         <div className="mb-chat-messages-full" ref={scrollRef}>
@@ -962,7 +1012,7 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
           {!messagesLoading && messages.length === 0 && !loading && (
             <div style={{ margin: "auto", textAlign: "center", color: "var(--text-muted)", maxWidth: 380 }}>
               <div className="mb-avatar" style={{ margin: "0 auto 0.9rem" }}><Mascot /></div>
-              <p style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text)" }}>Hi, I'm Clarity 👋</p>
+              <p style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text)" }}>{firstName ? `Hi ${firstName}, I'm Clarity 👋` : "Hi, I'm Clarity 👋"}</p>
               <p style={{ fontSize: "0.88rem", marginTop: "0.3rem" }}>Whatever's on your mind — a symptom, a worry, or just not knowing where to start.</p>
               <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center", marginTop: "1.1rem" }}>
                 {CHAT_STARTERS.map((s) => (
@@ -976,7 +1026,7 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
               {m.role === "assistant" && <div className="mb-avatar" style={{ background: MOOD_META[m.mood || "calm"].grad }}><Mascot size={18} mood={m.mood || "calm"} /></div>}
               <div className={`mb-bubble ${m.role}`}>
                 <span className="mb-bubble-label">{m.role === "user" ? "You" : `Clarity${m.mood && m.mood !== "calm" ? ` · ${MOOD_META[m.mood].label}` : ""}`}</span>
-                <span style={{ whiteSpace: "pre-wrap" }}>{m.content}</span>
+                <span style={{ whiteSpace: "pre-wrap" }}>{renderInline(m.content)}</span>
               </div>
             </div>
           ))}
