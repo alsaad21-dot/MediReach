@@ -8,10 +8,15 @@ export default async function handler(req, res) {
 
   try {
     const { system, messages } = req.body;
-    const contents = (messages || []).map((m) => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }));
+    const contents = (messages || []).map((m) => {
+      const parts = [];
+      if (m.content) parts.push({ text: m.content });
+      (m.attachments || []).forEach((a) => {
+        if (a && a.mimeType && a.data) parts.push({ inlineData: { mimeType: a.mimeType, data: a.data } });
+      });
+      if (parts.length === 0) parts.push({ text: '' });
+      return { role: m.role === 'assistant' ? 'model' : 'user', parts };
+    });
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
