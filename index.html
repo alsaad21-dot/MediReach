@@ -994,7 +994,10 @@ function CameraModal({ onCapture, onClose }) {
         <>
           <video ref={videoRef} autoPlay playsInline muted style={{ maxWidth: "100%", maxHeight: "70vh", borderRadius: 16, background: "#000" }} />
           <button onClick={capture} aria-label="Capture photo"
-            style={{ marginTop: "1.5rem", width: 68, height: 68, borderRadius: "50%", background: "#fff", border: "4px solid rgba(255,255,255,0.4)", cursor: "pointer" }} />
+            style={{ marginTop: "1.5rem", width: 72, height: 72, borderRadius: "50%", background: "#fff", border: "4px solid rgba(255,255,255,0.4)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+            <CameraIcon size={28} color="#0F172A" />
+          </button>
+          <p style={{ color: "#fff", opacity: 0.75, fontSize: "0.8rem", marginTop: "0.7rem" }}>Tap to take the photo</p>
         </>
       )}
     </div>
