@@ -1017,7 +1017,6 @@ function FeedbackPrompt({ session, conversationId, onDone }) {
 
   const submit = () => {
     setSubmitted(true);
-    try { localStorage.setItem("medireach_feedback_given", "1"); } catch (e) {}
     if (supabaseClient) {
       supabaseClient.from("feedback").insert({
         user_id: session?.user?.id || null,
@@ -1089,18 +1088,21 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
   const [attachError, setAttachError] = useState(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [feedbackDismissed, setFeedbackDismissed] = useState(false);
-  const [feedbackGiven] = useState(() => {
-    try { return !!localStorage.getItem("medireach_feedback_given"); } catch (e) { return false; }
-  });
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
+
+  // Reset the feedback prompt for every new/different conversation, so it's
+  // asked once per chat rather than just once ever.
+  useEffect(() => {
+    setFeedbackDismissed(false);
+  }, [activeId]);
 
   const firstName = session?.user?.user_metadata?.first_name || "";
   const fullName = [session?.user?.user_metadata?.first_name, session?.user?.user_metadata?.last_name].filter(Boolean).join(" ");
   const lastAssistantMood = [...messages].reverse().find((m) => m.role === "assistant")?.mood || "calm";
   const assistantReplyCount = messages.filter((m) => m.role === "assistant").length;
-  const showFeedback = !feedbackGiven && !feedbackDismissed && assistantReplyCount >= 2 && !loading;
+  const showFeedback = !feedbackDismissed && assistantReplyCount >= 2 && !loading;
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
