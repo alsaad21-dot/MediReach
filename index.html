@@ -1012,20 +1012,21 @@ function CameraModal({ onCapture, onClose }) {
 function FeedbackPrompt({ session, conversationId, onDone }) {
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
+  const [comment, setComment] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const rate = (value) => {
-    setRating(value);
+  const submit = () => {
     setSubmitted(true);
     try { localStorage.setItem("medireach_feedback_given", "1"); } catch (e) {}
     if (supabaseClient) {
       supabaseClient.from("feedback").insert({
         user_id: session?.user?.id || null,
         conversation_id: conversationId || null,
-        rating: value,
+        rating,
+        comment: comment.trim() || null,
       }).then(({ error }) => { if (error) console.error("Couldn't save feedback:", error.message); });
     }
-    setTimeout(onDone, 2200);
+    setTimeout(onDone, 1800);
   };
 
   return (
@@ -1043,12 +1044,28 @@ function FeedbackPrompt({ session, conversationId, onDone }) {
           <p style={{ fontSize: "0.85rem", fontWeight: 600, marginBottom: "0.6rem" }}>How's Clarity doing so far?</p>
           <div style={{ display: "flex", gap: "0.3rem", justifyContent: "center" }} onMouseLeave={() => setHover(0)}>
             {[1, 2, 3, 4, 5].map((n) => (
-              <button key={n} onClick={() => rate(n)} onMouseEnter={() => setHover(n)} aria-label={`Rate ${n} out of 5`}
+              <button key={n} onClick={() => setRating(n)} onMouseEnter={() => setHover(n)} aria-label={`Rate ${n} out of 5`}
                 style={{ background: "none", border: "none", cursor: "pointer", padding: "0.2rem", color: (hover || rating) >= n ? "#F59E0B" : "var(--border)" }}>
                 <Star size={22} filled={(hover || rating) >= n} />
               </button>
             ))}
           </div>
+          {rating > 0 && (
+            <div style={{ marginTop: "0.75rem", textAlign: "left" }}>
+              <textarea
+                className="mb-input"
+                rows={2}
+                placeholder="Anything you'd add? (optional)"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                autoFocus
+                style={{ width: "100%", resize: "none", fontSize: "0.85rem" }}
+              />
+              <RippleButton className="mb-btn" onClick={submit} style={{ marginTop: "0.6rem", width: "100%", justifyContent: "center", padding: "0.6rem" }}>
+                Send feedback
+              </RippleButton>
+            </div>
+          )}
         </>
       )}
     </div>
