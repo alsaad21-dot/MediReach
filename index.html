@@ -45,6 +45,7 @@ const ArrowLeft = (p) => <Icon {...p}><path d="m12 19-7-7 7-7" /><path d="M19 12
 const Paperclip = (p) => <Icon {...p}><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></Icon>;
 const CameraIcon = (p) => <Icon {...p}><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z" /><circle cx="12" cy="13" r="3.5" /></Icon>;
 const FileIcon = (p) => <Icon {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></Icon>;
+const Star = ({ filled, ...p }) => <Icon {...p} fill={filled ? (p.color || "currentColor") : "none"}><path d="m12 2 2.9 6.9 7.1.6-5.4 4.7 1.7 7-6.3-3.9L5.7 21l1.7-7L2 9.5l7.1-.6z" /></Icon>;
 
 /* ------------------------------------------------------------------ */
 /* CONFIG — edit the ✏️ placeholders with your own info                */
@@ -1006,6 +1007,54 @@ function CameraModal({ onCapture, onClose }) {
   );
 }
 
+/* Quick, low-friction star rating — shows once someone's actually had a     */
+/* couple of replies from Clarity, never nags again once they've rated.     */
+function FeedbackPrompt({ session, conversationId, onDone }) {
+  const [rating, setRating] = useState(0);
+  const [hover, setHover] = useState(0);
+  const [submitted, setSubmitted] = useState(false);
+
+  const rate = (value) => {
+    setRating(value);
+    setSubmitted(true);
+    try { localStorage.setItem("medireach_feedback_given", "1"); } catch (e) {}
+    if (supabaseClient) {
+      supabaseClient.from("feedback").insert({
+        user_id: session?.user?.id || null,
+        conversation_id: conversationId || null,
+        rating: value,
+      }).then(({ error }) => { if (error) console.error("Couldn't save feedback:", error.message); });
+    }
+    setTimeout(onDone, 2200);
+  };
+
+  return (
+    <div className="mb-card" style={{ position: "relative", padding: "1rem 1.5rem", margin: "0.25rem auto 0.75rem", maxWidth: 360, textAlign: "center" }}>
+      {!submitted && (
+        <button onClick={onDone} aria-label="Dismiss"
+          style={{ position: "absolute", top: 6, right: 6, background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", display: "flex", padding: 4 }}>
+          <X size={14} />
+        </button>
+      )}
+      {submitted ? (
+        <p style={{ fontSize: "0.9rem", fontWeight: 600, margin: 0 }}>Thanks for the feedback! 🙏</p>
+      ) : (
+        <>
+          <p style={{ fontSize: "0.85rem", fontWeight: 600, marginBottom: "0.6rem" }}>How's Clarity doing so far?</p>
+          <div style={{ display: "flex", gap: "0.3rem", justifyContent: "center" }} onMouseLeave={() => setHover(0)}>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button key={n} onClick={() => rate(n)} onMouseEnter={() => setHover(n)} aria-label={`Rate ${n} out of 5`}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: "0.2rem", color: (hover || rating) >= n ? "#F59E0B" : "var(--border)" }}>
+                <Star size={22} filled={(hover || rating) >= n} />
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function ChatWorkspace({ session, onSignOut, onGoHome }) {
   const [conversations, setConversations] = useState([]);
   const [conversationsLoading, setConversationsLoading] = useState(!!(SUPABASE_READY && session));
@@ -1022,6 +1071,10 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
   const [attachments, setAttachments] = useState([]);
   const [attachError, setAttachError] = useState(null);
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [feedbackDismissed, setFeedbackDismissed] = useState(false);
+  const [feedbackGiven] = useState(() => {
+    try { return !!localStorage.getItem("medireach_feedback_given"); } catch (e) { return false; }
+  });
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -1029,6 +1082,8 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
   const firstName = session?.user?.user_metadata?.first_name || "";
   const fullName = [session?.user?.user_metadata?.first_name, session?.user?.user_metadata?.last_name].filter(Boolean).join(" ");
   const lastAssistantMood = [...messages].reverse().find((m) => m.role === "assistant")?.mood || "calm";
+  const assistantReplyCount = messages.filter((m) => m.role === "assistant").length;
+  const showFeedback = !feedbackGiven && !feedbackDismissed && assistantReplyCount >= 2 && !loading;
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -1365,6 +1420,9 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
               </div>
             </div>
           ))}
+          {showFeedback && (
+            <FeedbackPrompt session={session} conversationId={activeId} onDone={() => setFeedbackDismissed(true)} />
+          )}
           {loading && (
             <div className="mb-msg-row assistant">
               <div className="mb-avatar"><Mascot size={48} talking /></div>
