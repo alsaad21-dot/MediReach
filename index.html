@@ -264,11 +264,20 @@ const GlobalStyles = () => (
     .mb-avatar-hero:hover { filter: brightness(1.08); }
     .mb-avatar-hero:active { filter: brightness(0.95); }
 
-    /* ---- logo mark: soft pulse while Clarity is composing a reply ---- */
-    .mb-logo-talking { animation: mb-logo-pulse 0.7s ease-in-out infinite; }
-    @keyframes mb-logo-pulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(0.9); opacity: 0.75; }
+    /* ---- mascot life: blinking + talking ---- */
+    .mb-eye { transform-box: fill-box; transform-origin: center; animation: mb-blink 4.8s ease-in-out infinite; }
+    .mb-eye:nth-of-type(2) { animation-delay: 0.08s; }
+    @keyframes mb-blink {
+      0%, 92%, 100% { transform: scaleY(1); }
+      95% { transform: scaleY(0.12); }
+    }
+    .mb-mouth-talking {
+      transform-box: fill-box; transform-origin: center;
+      animation: mb-talk 0.32s ease-in-out infinite;
+    }
+    @keyframes mb-talk {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(0.45); }
     }
 
     /* ---- chat ---- */
@@ -436,26 +445,49 @@ function RippleButton({ className, children, onClick, ...rest }) {
 /* Mood vocabulary Clarity's replies are tagged with (see SYSTEM_PROMPT).   */
 /* Each mood drives the mascot's face, plus a gradient/label for the UI.    */
 const MOOD_META = {
-  calm:        { label: "Calm",        grad: "var(--grad-1)" },
-  caring:      { label: "Caring",      grad: "var(--grad-1)" },
-  concerned:   { label: "Concerned",   grad: "linear-gradient(135deg, #F59E0B, #EA580C)" },
-  urgent:      { label: "Urgent",      grad: "linear-gradient(135deg, #EF4444, #B91C1C)" },
-  encouraging: { label: "Encouraging", grad: "var(--grad-2)" },
-  celebratory: { label: "Celebratory", grad: "linear-gradient(135deg, #F59E0B, #22C55E)" },
-  playful:     { label: "Playful",     grad: "linear-gradient(135deg, #2563EB, #A855F7)" },
-  somber:      { label: "Somber",      grad: "linear-gradient(135deg, #64748B, #334155)" },
+  calm:        { label: "Calm",        grad: "var(--grad-1)", mouth: "M13 25c2.2 2.2 11.8 2.2 14 0", brows: null, wink: false },
+  caring:      { label: "Caring",      grad: "var(--grad-1)", mouth: "M13 24.5c2.2 2.6 11.8 2.6 14 0", brows: null, wink: false },
+  concerned:   { label: "Concerned",   grad: "linear-gradient(135deg, #F59E0B, #EA580C)", mouth: "M14 26.5c1.8-1.4 10.2-1.4 12 0", brows: "M11 14.5 15 16.2M29 14.5 25 16.2", wink: false },
+  urgent:      { label: "Urgent",      grad: "linear-gradient(135deg, #EF4444, #B91C1C)", mouth: "M17.2 26a2.8 1.3 0 1 0 5.6 0 2.8 1.3 0 1 0-5.6 0", mouthFill: true, brows: "M10.5 13.2 15.5 16M29.5 13.2 24.5 16", wink: false },
+  encouraging: { label: "Encouraging", grad: "var(--grad-2)", mouth: "M12 24c2.6 3.4 13.4 3.4 16 0", brows: "M11 15 15.5 13.5M29 15 24.5 13.5", wink: false },
+  celebratory: { label: "Celebratory", grad: "linear-gradient(135deg, #F59E0B, #22C55E)", mouth: "M11.5 23.5c2.8 4 14.2 4 17 0", brows: "M11 14.5 15.5 12.8M29 14.5 24.5 12.8", wink: false },
+  playful:     { label: "Playful",     grad: "linear-gradient(135deg, #2563EB, #A855F7)", mouth: "M13 24.5c2.2 2.6 11.8 2.6 14 0", brows: "M11 15 15.5 13.2", wink: true },
+  somber:      { label: "Somber",      grad: "linear-gradient(135deg, #64748B, #334155)", mouth: "M14.5 26c1.6-1 9.4-1 11 0", brows: "M11.5 15 15 15.6M28.5 15 25 15.6", wink: false },
 };
 const MOOD_NAMES = Object.keys(MOOD_META);
 
-/* Clarity's mark — two interlocking "C" arcs, matching the brand logo.     */
-/* `talking` gives it a soft pulse while Clarity composes a reply.          */
+/* Clarity's character art — a friendly robot head with a medical badge.    */
 function Mascot({ size = 22, mood = "calm", talking = false }) {
+  const m = MOOD_META[mood] || MOOD_META.calm;
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" className={talking ? "mb-logo-talking" : ""}>
-      <circle cx="39" cy="50" r="26" stroke="#FFFFFF" strokeWidth="15" strokeLinecap="round"
-        strokeDasharray="122.5 40.85" transform="rotate(-40 39 50)" />
-      <circle cx="61" cy="50" r="26" stroke="#FFFFFF" strokeOpacity="0.75" strokeWidth="15" strokeLinecap="round"
-        strokeDasharray="122.5 40.85" transform="rotate(140 61 50)" />
+    <svg width={size} height={size} viewBox="80 50 352 352" fill="none">
+      <line x1="256" y1="118" x2="256" y2="90" stroke="#FFFFFF" strokeWidth="8" strokeLinecap="round" />
+      <circle cx="256" cy="80" r="12" fill="#5EEAD4" />
+
+      <rect x="146" y="118" width="220" height="190" rx="56" fill="#F4FBFC" stroke="#0B4A57" strokeWidth="6" />
+      <rect x="122" y="185" width="26" height="56" rx="13" fill="#EAF6F7" stroke="#0B4A57" strokeWidth="6" />
+      <rect x="364" y="185" width="26" height="56" rx="13" fill="#EAF6F7" stroke="#0B4A57" strokeWidth="6" />
+
+      <g transform="translate(109.33 73.07) scale(7.333)">
+        {m.brows && <path d={m.brows} stroke="#0E7490" strokeWidth="1.6" strokeLinecap="round" fill="none" opacity="0.8" />}
+        <circle className="mb-eye" cx="14" cy="18" r="2.4" fill="#0E7490" />
+        <circle cx="14.9" cy="17.1" r="0.7" fill="#fff" />
+        {m.wink ? (
+          <path d="M23.6 18h5" stroke="#0E7490" strokeWidth="1.8" strokeLinecap="round" />
+        ) : (
+          <>
+            <circle className="mb-eye" cx="26" cy="18" r="2.4" fill="#0E7490" />
+            <circle cx="26.9" cy="17.1" r="0.7" fill="#fff" />
+          </>
+        )}
+        <path className={talking ? "mb-mouth-talking" : ""} d={m.mouth} stroke="#0E7490" strokeWidth="2.2" strokeLinecap="round" fill={m.mouthFill ? "#0E7490" : "none"} />
+      </g>
+
+      <g transform="translate(256,340)">
+        <circle r="46" fill="#FFFFFF" stroke="#0B4A57" strokeWidth="6" />
+        <rect x="-8" y="-26" width="16" height="52" rx="4" fill="#0EA5B0" />
+        <rect x="-26" y="-8" width="52" height="16" rx="4" fill="#0EA5B0" />
+      </g>
     </svg>
   );
 }
@@ -589,13 +621,13 @@ function Blobs() {
 }
 
 function Hero({ onStart }) {
-  const [reacting, setReacting] = useState(false);
+  const [heroMood, setHeroMood] = useState("calm");
   const reactTimeout = useRef(null);
 
-  const react = () => {
-    setReacting(true);
+  const react = (mood) => {
+    setHeroMood(mood);
     if (reactTimeout.current) clearTimeout(reactTimeout.current);
-    reactTimeout.current = setTimeout(() => setReacting(false), 900);
+    reactTimeout.current = setTimeout(() => setHeroMood("calm"), 1400);
   };
 
   useEffect(() => () => { if (reactTimeout.current) clearTimeout(reactTimeout.current); }, []);
@@ -607,14 +639,14 @@ function Hero({ onStart }) {
       </p>
       <div
         className="mb-avatar-hero"
-        onMouseEnter={react}
-        onClick={react}
+        onMouseEnter={() => react("playful")}
+        onClick={() => react("celebratory")}
         role="button"
         tabIndex={0}
         aria-label="Say hi to Clarity"
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") react(); }}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") react("celebratory"); }}
       >
-        <Mascot size={118} talking={reacting} />
+        <Mascot size={118} mood={heroMood} />
       </div>
       <h1 style={{ fontSize: "clamp(2.1rem, 5.5vw, 3.3rem)", fontWeight: 800, margin: "1rem 0 1rem", lineHeight: 1.1 }}>
         Healthcare questions,{" "}
