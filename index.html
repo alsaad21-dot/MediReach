@@ -554,7 +554,10 @@ function renderInline(text) {
 /* ATTACHMENTS — image/file upload + camera capture                    */
 /* ------------------------------------------------------------------ */
 
-const MAX_ATTACHMENT_MB = 4;
+// Kept comfortably under Vercel's ~4.5MB request-body limit — base64
+// encoding inflates file size by about a third, and the JSON envelope
+// (system prompt, conversation text, etc.) adds a bit more on top.
+const MAX_ATTACHMENT_MB = 2.5;
 
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -1282,13 +1285,18 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           system: systemPrompt,
-          messages: newMessages.map((m) => ({
+          // Only the newest message's attachments are re-sent as binary data —
+          // replaying every past photo on every turn is what blew past
+          // Vercel's request-size limit after just a couple of uploads.
+          messages: newMessages.map((m, i) => ({
             role: m.role,
             content: m.content,
-            attachments: (m.attachments || []).map((a) => ({
-              mimeType: a.mimeType,
-              data: a.dataUrl.includes(",") ? a.dataUrl.split(",")[1] : a.dataUrl,
-            })),
+            attachments: i === newMessages.length - 1
+              ? (m.attachments || []).map((a) => ({
+                  mimeType: a.mimeType,
+                  data: a.dataUrl.includes(",") ? a.dataUrl.split(",")[1] : a.dataUrl,
+                }))
+              : [],
           })),
         }),
       });
