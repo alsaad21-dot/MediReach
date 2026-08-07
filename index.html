@@ -147,6 +147,7 @@ const GlobalStyles = () => (
       --primary: #2563EB;
       --secondary: #14B8A6;
       --accent: #F59E0B;
+      --accent-2: #A855F7;
       --success: #22C55E;
       --bg: #F8FAFC;
       --card: #FFFFFF;
@@ -154,8 +155,12 @@ const GlobalStyles = () => (
       --text-muted: #64748B;
       --grad-1: linear-gradient(135deg, #2563EB, #14B8A6);
       --grad-2: linear-gradient(135deg, #14B8A6, #06B6D4);
+      --grad-hero: linear-gradient(115deg, #2563EB, #7C3AED, #14B8A6, #2563EB);
       --border: #E2E8F0;
-      background: var(--bg);
+      background:
+        radial-gradient(ellipse 900px 500px at 15% -10%, rgba(37,99,235,0.08), transparent 60%),
+        radial-gradient(ellipse 700px 500px at 100% 10%, rgba(20,184,166,0.08), transparent 60%),
+        var(--bg);
       color: var(--text);
       font-family: 'Plus Jakarta Sans', sans-serif;
       min-height: 100vh;
@@ -167,16 +172,52 @@ const GlobalStyles = () => (
     .mb-blob {
       position: absolute;
       border-radius: 50%;
-      filter: blur(60px);
-      opacity: 0.35;
+      filter: blur(70px);
+      opacity: 0.4;
       pointer-events: none;
       z-index: 0;
       animation: mb-float 9s ease-in-out infinite;
     }
     @keyframes mb-float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      50% { transform: translate(20px, -26px) scale(1.06); }
+      0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+      50% { transform: translate(20px, -26px) scale(1.12) rotate(8deg); }
     }
+
+    /* ---- reusable animated gradient text ---- */
+    .mb-gradient-text-anim {
+      background: var(--grad-hero);
+      background-size: 300% 300%;
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      animation: mb-gradient-move 7s ease infinite;
+      filter: drop-shadow(0 10px 26px rgba(37,99,235,0.28));
+      display: inline-block;
+    }
+    @keyframes mb-gradient-move {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* ---- 3D mouse-tilt cards ---- */
+    .mb-tilt { perspective: 1200px; height: 100%; }
+    .mb-tilt-inner {
+      --rx: 0deg; --ry: 0deg; --lift: 0px; --mx: 50%; --my: 50%;
+      transform: translateY(var(--lift)) rotateX(var(--rx)) rotateY(var(--ry));
+      transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+      height: 100%;
+      will-change: transform;
+    }
+    .mb-tilt-inner:hover {
+      --lift: -8px;
+      box-shadow: 0 30px 60px -18px rgba(37,99,235,0.35), 0 10px 24px rgba(15,23,42,0.1);
+      border-color: rgba(37,99,235,0.25) !important;
+    }
+    .mb-tilt-inner::after {
+      content: ""; position: absolute; inset: 0; border-radius: inherit;
+      background: radial-gradient(280px circle at var(--mx) var(--my), rgba(37,99,235,0.16), transparent 65%);
+      opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
+    }
+    .mb-tilt-inner:hover::after { opacity: 1; }
 
     /* ---- nav ---- */
     .mb-nav {
@@ -184,6 +225,7 @@ const GlobalStyles = () => (
       background: rgba(248,250,252,0.75);
       backdrop-filter: blur(14px);
       border-bottom: 1px solid var(--border);
+      box-shadow: 0 4px 24px rgba(15,23,42,0.04);
     }
     .mb-progress {
       position: sticky; top: 0; z-index: 51;
@@ -200,22 +242,24 @@ const GlobalStyles = () => (
     .mb-navlink:hover { color: var(--primary); }
     .mb-navlink:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
 
-    /* ---- buttons ---- */
+    /* ---- buttons (3D keycap feel) ---- */
     .mb-btn {
       position: relative; overflow: hidden;
       display: inline-flex; align-items: center; gap: 0.5rem;
       background: var(--grad-1); color: #fff; border: none;
       padding: 0.85rem 1.6rem; border-radius: 999px;
       font-size: 0.95rem; font-weight: 700; cursor: pointer;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      box-shadow: 0 4px 14px rgba(37,99,235,0.25);
+      transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.15s ease;
+      box-shadow: 0 5px 0 0 #123E8F, 0 4px 14px rgba(37,99,235,0.25), 0 14px 30px rgba(37,99,235,0.22), inset 0 1px 0 rgba(255,255,255,0.35);
       font-family: 'Plus Jakarta Sans', sans-serif;
+      transform: translateY(0);
     }
-    .mb-btn:hover { transform: scale(1.045) translateY(-1px); box-shadow: 0 10px 28px rgba(37,99,235,0.4); }
-    .mb-btn:active { transform: scale(0.98); }
+    .mb-btn:hover { transform: scale(1.035) translateY(-2px); box-shadow: 0 7px 0 0 #123E8F, 0 10px 22px rgba(37,99,235,0.32), 0 22px 40px rgba(37,99,235,0.32), inset 0 1px 0 rgba(255,255,255,0.35); }
+    .mb-btn:active { transform: scale(0.985) translateY(3px); box-shadow: 0 2px 0 0 #123E8F, 0 4px 10px rgba(37,99,235,0.3), inset 0 1px 0 rgba(255,255,255,0.3); }
     .mb-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
-    .mb-btn.ghost { background: #fff; color: var(--primary); border: 1.5px solid var(--border); box-shadow: none; }
-    .mb-btn.ghost:hover { border-color: var(--primary); box-shadow: 0 6px 18px rgba(37,99,235,0.15); }
+    .mb-btn.ghost { background: #fff; color: var(--primary); border: 1.5px solid var(--border); box-shadow: 0 3px 0 0 var(--border), 0 6px 16px rgba(15,23,42,0.06); }
+    .mb-btn.ghost:hover { border-color: var(--primary); box-shadow: 0 3px 0 0 var(--border), 0 10px 22px rgba(37,99,235,0.18); transform: scale(1.03) translateY(-2px); }
+    .mb-btn.ghost:active { transform: translateY(2px); box-shadow: 0 1px 0 0 var(--border); }
 
     .mb-ripple {
       position: absolute; border-radius: 50%;
@@ -233,6 +277,7 @@ const GlobalStyles = () => (
       border-radius: 20px;
       transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
       position: relative;
+      box-shadow: 0 2px 6px rgba(15,23,42,0.04);
     }
     .mb-card.hoverable:hover {
       transform: translateY(-4px);
@@ -250,7 +295,11 @@ const GlobalStyles = () => (
       width: 44px; height: 44px; border-radius: 14px;
       display: flex; align-items: center; justify-content: center;
       color: #fff; flex-shrink: 0;
+      box-shadow: 0 8px 18px -4px rgba(37,99,235,0.5), inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -2px 4px rgba(0,0,0,0.12);
+      transform: translateZ(0);
+      transition: transform 0.25s ease;
     }
+    .mb-tilt-inner:hover .mb-icon-badge { transform: translateY(-2px) scale(1.06) rotate(-4deg); }
 
     /* ---- avatar ---- */
     .mb-avatar {
@@ -258,19 +307,42 @@ const GlobalStyles = () => (
       background: var(--grad-1); flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
       animation: mb-avatar-bob 3s ease-in-out infinite;
+      box-shadow: 0 10px 20px -6px rgba(37,99,235,0.5), inset 0 2px 3px rgba(255,255,255,0.35), inset 0 -3px 6px rgba(0,0,0,0.15);
     }
     @keyframes mb-avatar-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
     .mb-avatar-hero {
+      position: relative;
       width: 140px; height: 140px; border-radius: 50%;
       background: var(--grad-1);
       display: flex; align-items: center; justify-content: center;
       margin: 0 auto 1.5rem;
       animation: mb-avatar-bob 3.2s ease-in-out infinite;
-      box-shadow: 0 16px 40px rgba(37,99,235,0.3);
-      cursor: pointer; transition: filter 0.2s ease;
+      box-shadow: 0 20px 45px rgba(37,99,235,0.35), inset 0 3px 6px rgba(255,255,255,0.4), inset 0 -6px 12px rgba(0,0,0,0.18);
+      cursor: pointer; transition: filter 0.2s ease, transform 0.2s ease;
     }
-    .mb-avatar-hero:hover { filter: brightness(1.08); }
-    .mb-avatar-hero:active { filter: brightness(0.95); }
+    .mb-avatar-hero::before {
+      content: ""; position: absolute; inset: -16px; border-radius: 50%; z-index: -1;
+      background: conic-gradient(from 0deg, #2563EB, #A855F7, #14B8A6, #F59E0B, #2563EB);
+      filter: blur(22px); opacity: 0.6;
+      animation: mb-spin 7s linear infinite;
+    }
+    @keyframes mb-spin { to { transform: rotate(360deg); } }
+    .mb-avatar-hero:hover { filter: brightness(1.08); transform: scale(1.04) translateY(-2px); }
+    .mb-avatar-hero:active { filter: brightness(0.95); transform: scale(0.98); }
+
+    /* ---- perspective grid floor (hero backdrop) ---- */
+    .mb-grid-floor {
+      position: absolute; left: 50%; bottom: -30px; width: 160%; height: 280px;
+      transform: translateX(-50%) perspective(600px) rotateX(64deg);
+      background-image:
+        linear-gradient(rgba(37,99,235,0.22) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(37,99,235,0.22) 1px, transparent 1px);
+      background-size: 46px 46px;
+      -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.85), transparent 78%);
+      mask-image: linear-gradient(to top, rgba(0,0,0,0.85), transparent 78%);
+      pointer-events: none;
+      z-index: 0;
+    }
 
     /* ---- mascot life: blinking + talking ---- */
     .mb-eye { transform-box: fill-box; transform-origin: center; animation: mb-blink 4.8s ease-in-out infinite; }
@@ -298,8 +370,8 @@ const GlobalStyles = () => (
       max-width: 78%; border-radius: 18px; padding: 0.8rem 1.1rem;
       font-size: 0.93rem; line-height: 1.55;
     }
-    .mb-bubble.user { background: var(--grad-1); color: #fff; border-bottom-right-radius: 4px; }
-    .mb-bubble.assistant { background: #F1F5F9; color: var(--text); border-bottom-left-radius: 4px; }
+    .mb-bubble.user { background: var(--grad-1); color: #fff; border-bottom-right-radius: 4px; box-shadow: 0 10px 22px -8px rgba(37,99,235,0.5), inset 0 1px 0 rgba(255,255,255,0.25); }
+    .mb-bubble.assistant { background: #F1F5F9; color: var(--text); border-bottom-left-radius: 4px; box-shadow: 0 2px 8px rgba(15,23,42,0.05), inset 0 1px 0 rgba(255,255,255,0.6); }
     .mb-bubble-label {
       font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
       opacity: 0.6; display: block; margin-bottom: 0.25rem;
@@ -327,17 +399,19 @@ const GlobalStyles = () => (
     .mb-input {
       flex: 1; background: var(--bg); border: 1.5px solid var(--border); border-radius: 14px;
       padding: 0.7rem 1rem; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.93rem; color: var(--text);
-      resize: none; transition: border-color 0.2s ease;
+      resize: none; transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
-    .mb-input:focus-visible { outline: none; border-color: var(--primary); }
+    .mb-input:focus-visible { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(37,99,235,0.12); }
     .mb-send {
       position: relative; overflow: hidden;
       background: var(--grad-1); color: #fff; border: none; border-radius: 14px; width: 46px;
       cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-      transition: transform 0.15s ease;
+      transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.15s ease;
+      box-shadow: 0 4px 0 0 #123E8F, 0 10px 18px rgba(37,99,235,0.3), inset 0 1px 0 rgba(255,255,255,0.35);
     }
-    .mb-send:hover:not(:disabled) { transform: scale(1.08); }
-    .mb-send:disabled { opacity: 0.4; cursor: default; }
+    .mb-send:hover:not(:disabled) { transform: translateY(-2px) scale(1.05); }
+    .mb-send:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 0 #123E8F, 0 4px 10px rgba(37,99,235,0.3); }
+    .mb-send:disabled { opacity: 0.4; cursor: default; box-shadow: none; }
     .mb-send:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 
     .mb-attach-btn {
@@ -357,6 +431,7 @@ const GlobalStyles = () => (
       width: 272px; flex-shrink: 0; background: var(--card); border-right: 1px solid var(--border);
       display: flex; flex-direction: column; height: 100%;
       transition: margin-left 0.25s ease;
+      box-shadow: 4px 0 20px rgba(15,23,42,0.03);
     }
     .mb-sidebar-brand {
       display: flex; align-items: center; gap: 0.5rem; padding: 1rem 1.1rem 0.5rem;
@@ -392,6 +467,7 @@ const GlobalStyles = () => (
     .mb-chat-topbar {
       display: flex; align-items: center; gap: 0.7rem; padding: 0.8rem 1.25rem;
       border-bottom: 1px solid var(--border); flex-shrink: 0;
+      box-shadow: 0 4px 16px rgba(15,23,42,0.03); position: relative; z-index: 1;
     }
     .mb-sidebar-toggle {
       display: none; background: none; border: none; cursor: pointer; color: var(--text); padding: 0.2rem;
@@ -426,7 +502,7 @@ const GlobalStyles = () => (
     }
 
     /* ---- stat count ---- */
-    .mb-stat-value { font-size: 2.4rem; font-weight: 800; }
+    .mb-stat-value { font-size: 2.6rem; font-weight: 800; filter: drop-shadow(0 6px 14px rgba(37,99,235,0.3)); }
 
     @media (prefers-reduced-motion: reduce) {
       .mb-root * { animation: none !important; transition: none !important; }
@@ -458,6 +534,44 @@ function RippleButton({ className, children, onClick, ...rest }) {
     </button>
   );
 }
+
+/* Wraps children in a perspective wrapper and tilts them toward the mouse  */
+/* for a real 3D depth effect; ref forwards to the outer wrapper so callers */
+/* (e.g. IntersectionObserver hooks) can still observe the element.        */
+const TiltCard = React.forwardRef(function TiltCard({ className = "", style, children, ...rest }, outerRef) {
+  const innerRef = useRef(null);
+  const rafRef = useRef(null);
+
+  const handleMove = (e) => {
+    const el = innerRef.current;
+    if (!el) return;
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    const clientX = e.clientX, clientY = e.clientY;
+    rafRef.current = requestAnimationFrame(() => {
+      const rect = el.getBoundingClientRect();
+      const px = (clientX - rect.left) / rect.width;
+      const py = (clientY - rect.top) / rect.height;
+      el.style.setProperty("--rx", `${((0.5 - py) * 10).toFixed(2)}deg`);
+      el.style.setProperty("--ry", `${((px - 0.5) * 10).toFixed(2)}deg`);
+      el.style.setProperty("--mx", `${(px * 100).toFixed(1)}%`);
+      el.style.setProperty("--my", `${(py * 100).toFixed(1)}%`);
+    });
+  };
+  const handleLeave = () => {
+    const el = innerRef.current;
+    if (!el) return;
+    el.style.setProperty("--rx", "0deg");
+    el.style.setProperty("--ry", "0deg");
+  };
+
+  return (
+    <div ref={outerRef} className="mb-tilt" onMouseMove={handleMove} onMouseLeave={handleLeave}>
+      <div ref={innerRef} className={`mb-tilt-inner ${className}`} style={style} {...rest}>
+        {children}
+      </div>
+    </div>
+  );
+});
 
 /* Mood vocabulary Clarity's replies are tagged with (see SYSTEM_PROMPT).   */
 /* Each mood drives the mascot's face, plus a gradient/label for the UI.    */
@@ -714,9 +828,10 @@ function useInView() {
 function Blobs() {
   return (
     <>
-      <div className="mb-blob" style={{ width: 340, height: 340, top: -80, left: -100, background: "var(--grad-1)" }} />
-      <div className="mb-blob" style={{ width: 260, height: 260, top: 220, right: -80, background: "var(--grad-2)", animationDelay: "-3s" }} />
-      <div className="mb-blob" style={{ width: 220, height: 220, top: 720, left: "40%", background: "linear-gradient(135deg, #F59E0B, #14B8A6)", animationDelay: "-5s" }} />
+      <div className="mb-blob" style={{ width: 380, height: 380, top: -100, left: -120, background: "var(--grad-1)" }} />
+      <div className="mb-blob" style={{ width: 280, height: 280, top: 220, right: -90, background: "var(--grad-2)", animationDelay: "-3s" }} />
+      <div className="mb-blob" style={{ width: 240, height: 240, top: 720, left: "40%", background: "linear-gradient(135deg, #F59E0B, #14B8A6)", animationDelay: "-5s" }} />
+      <div className="mb-blob" style={{ width: 260, height: 260, top: 480, left: -60, background: "linear-gradient(135deg, #A855F7, #2563EB)", animationDelay: "-1.5s" }} />
     </>
   );
 }
@@ -734,34 +849,37 @@ function Hero({ onStart }) {
   useEffect(() => () => { if (reactTimeout.current) clearTimeout(reactTimeout.current); }, []);
 
   return (
-    <section style={{ position: "relative", maxWidth: 720, margin: "0 auto", padding: "3.5rem 1.25rem 2.5rem", textAlign: "center", zIndex: 1 }}>
-      <p style={{ display: "inline-block", background: "var(--grad-2)", color: "#fff", fontWeight: 700, fontSize: "0.78rem", padding: "0.4rem 0.9rem", borderRadius: 999, letterSpacing: "0.02em" }}>
-        ✨ A friendlier first step toward care
-      </p>
-      <div
-        className="mb-avatar-hero"
-        onMouseEnter={() => react("playful")}
-        onClick={() => react("celebratory")}
-        role="button"
-        tabIndex={0}
-        aria-label="Say hi to Clarity"
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") react("celebratory"); }}
-      >
-        <Mascot size={118} mood={heroMood} />
+    <section style={{ position: "relative", maxWidth: 720, margin: "0 auto", padding: "3.5rem 1.25rem 2.5rem", textAlign: "center", zIndex: 1, overflow: "hidden" }}>
+      <div className="mb-grid-floor" aria-hidden="true" />
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <p style={{ display: "inline-block", background: "var(--grad-2)", color: "#fff", fontWeight: 700, fontSize: "0.78rem", padding: "0.4rem 0.9rem", borderRadius: 999, letterSpacing: "0.02em", boxShadow: "0 8px 20px -6px rgba(20,184,166,0.5)" }}>
+          ✨ A friendlier first step toward care
+        </p>
+        <div
+          className="mb-avatar-hero"
+          onMouseEnter={() => react("playful")}
+          onClick={() => react("celebratory")}
+          role="button"
+          tabIndex={0}
+          aria-label="Say hi to Clarity"
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") react("celebratory"); }}
+        >
+          <Mascot size={118} mood={heroMood} />
+        </div>
+        <h1 style={{ fontSize: "clamp(2.3rem, 6vw, 3.8rem)", fontWeight: 800, margin: "1rem 0 1rem", lineHeight: 1.08, letterSpacing: "-0.01em" }}>
+          Healthcare questions,{" "}
+          <span className="mb-gradient-text-anim">
+            without the dread.
+          </span>
+        </h1>
+        <p style={{ color: "var(--text-muted)", fontSize: "1.08rem", maxWidth: 540, margin: "0 auto 2rem" }}>
+          MediReach closes the gap between people and the healthcare they're putting off. Clarity, its AI companion,
+          meets you in the moment before the appointment — reassuring where it can be, direct where it has to be.
+        </p>
+        <RippleButton className="mb-btn" onClick={onStart}>
+          <MessageCircle size={17} /> Talk to Clarity
+        </RippleButton>
       </div>
-      <h1 style={{ fontSize: "clamp(2.1rem, 5.5vw, 3.3rem)", fontWeight: 800, margin: "1rem 0 1rem", lineHeight: 1.1 }}>
-        Healthcare questions,{" "}
-        <span style={{ background: "var(--grad-1)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>
-          without the dread.
-        </span>
-      </h1>
-      <p style={{ color: "var(--text-muted)", fontSize: "1.08rem", maxWidth: 540, margin: "0 auto 2rem" }}>
-        MediReach closes the gap between people and the healthcare they're putting off. Clarity, its AI companion,
-        meets you in the moment before the appointment — reassuring where it can be, direct where it has to be.
-      </p>
-      <RippleButton className="mb-btn" onClick={onStart}>
-        <MessageCircle size={17} /> Talk to Clarity
-      </RippleButton>
     </section>
   );
 }
@@ -770,13 +888,13 @@ function StatCard({ stat }) {
   const [ref, inView] = useInView();
   const count = useCountUp(stat.value, inView);
   return (
-    <div ref={ref} className="mb-card hoverable" style={{ padding: "1.3rem" }}>
+    <TiltCard ref={ref} className="mb-card hoverable" style={{ padding: "1.3rem" }}>
       <div className="mb-stat-value" style={{ background: "var(--grad-1)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>
         {count}{stat.suffix}
       </div>
       <p style={{ fontSize: "0.88rem", marginTop: "0.4rem" }}>{stat.label}</p>
       <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "0.6rem", fontWeight: 600 }}>{stat.source}</p>
-    </div>
+    </TiltCard>
   );
 }
 
@@ -805,13 +923,13 @@ function HowItWorks() {
       <h2 style={{ fontSize: "1.9rem", fontWeight: 800, marginBottom: "1.75rem", textAlign: "center" }}>How MediReach helps</h2>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: "1.25rem" }}>
         {STEPS.map((s) => (
-          <div key={s.title} className="mb-card hoverable" style={{ padding: "1.5rem" }}>
+          <TiltCard key={s.title} className="mb-card hoverable" style={{ padding: "1.5rem" }}>
             <div className="mb-icon-badge" style={{ background: s.grad, marginBottom: "0.9rem" }}>
               <s.icon size={20} />
             </div>
             <h3 style={{ fontWeight: 700, fontSize: "1.05rem", marginBottom: "0.5rem" }}>{s.title}</h3>
             <p style={{ fontSize: "0.88rem", color: "var(--text-muted)" }}>{s.desc}</p>
-          </div>
+          </TiltCard>
         ))}
       </div>
     </section>
@@ -1560,19 +1678,19 @@ function AboutUsPage({ onGoToChat }) {
         Founder & CEO, MediReach · Year 12, Cranleigh Abu Dhabi
       </p>
 
-      <div className="mb-card hoverable" style={{ padding: "1.75rem", marginBottom: "1.25rem" }}>
+      <TiltCard className="mb-card hoverable" style={{ padding: "1.75rem", marginBottom: "1.25rem" }}>
         <Quote size={22} color="var(--primary)" style={{ marginBottom: "0.7rem" }} />
         <p style={{ fontSize: "1.05rem", fontWeight: 600, lineHeight: 1.6 }}>
           I don't want anyone to put off understanding their own body just because medicine feels like it wasn't built for them to understand it.
         </p>
-      </div>
+      </TiltCard>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.1rem", marginBottom: "2rem" }}>
         {ABOUT_CARDS.map((c) => (
-          <div key={c.title} className="mb-card hoverable" style={{ padding: "1.5rem" }}>
+          <TiltCard key={c.title} className="mb-card hoverable" style={{ padding: "1.5rem" }}>
             <h2 style={{ fontSize: "1.05rem", fontWeight: 800, marginBottom: "0.6rem" }}>{c.title}</h2>
             <p style={{ fontSize: "0.9rem", lineHeight: 1.6, color: c.title === "Sources" ? "var(--text-muted)" : "var(--text)" }}>{c.body}</p>
-          </div>
+          </TiltCard>
         ))}
       </div>
 
@@ -1714,7 +1832,7 @@ function App() {
       {!immersiveChat && <nav className="mb-nav">
         <div style={{ maxWidth: 1060, margin: "0 auto", padding: "0.85rem 1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <button onClick={goHome} style={{ background: "none", border: "none", fontSize: "1.15rem", fontWeight: 800, color: "var(--text)", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-            <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--grad-1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--grad-1)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 14px -4px rgba(37,99,235,0.55), inset 0 1px 0 rgba(255,255,255,0.35)" }}>
               <Mascot size={25} />
             </span>
             MediReach
