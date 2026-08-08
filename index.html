@@ -383,6 +383,22 @@ const GlobalStyles = () => (
     }
     @media (max-width: 640px) { .mb-glass-chip { display: none; } }
 
+    .mb-hero-grid {
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .mb-hero-figure {
+      position: relative; z-index: 0; flex-shrink: 0;
+      cursor: pointer; margin: -2rem -1rem -3rem 0;
+      filter: drop-shadow(0 40px 70px rgba(37,99,235,0.35));
+    }
+    @media (max-width: 900px) {
+      .mb-hero-grid { flex-direction: column; text-align: center; }
+      .mb-hero-grid > div:first-child { text-align: center; max-width: 100% !important; margin: 0 auto; }
+      .mb-hero-grid > div:first-child p { margin-left: auto; margin-right: auto; }
+      .mb-hero-figure { margin: -1.5rem 0 -2rem; }
+    }
+
     /* ---- perspective grid floor (hero backdrop) ---- */
     .mb-grid-floor {
       position: absolute; left: 50%; bottom: -30px; width: 160%; height: 280px;
@@ -679,7 +695,7 @@ function Mascot({ size = 22, mood = "calm", talking = false }) {
 /* Builds the exact same face art as <Mascot>, but as a plain markup string  */
 /* (from the same MOOD_META data) so it can be used as a WebGL texture in    */
 /* ClarityOrb3D without round-tripping through a nested React render.       */
-function mascotSvgMarkup(mood, size = 512) {
+function mascotSvgMarkup(mood, size = 512, includeBadge = true) {
   const m = MOOD_META[mood] || MOOD_META.calm;
   const brows = m.brows
     ? `<path d="${m.brows}" stroke="#0E7490" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.8" />`
@@ -688,6 +704,13 @@ function mascotSvgMarkup(mood, size = 512) {
     ? `<path d="M23.6 18h5" stroke="#0E7490" stroke-width="1.8" stroke-linecap="round" />`
     : `<circle cx="26" cy="18" r="2.4" fill="#0E7490" /><circle cx="26.9" cy="17.1" r="0.7" fill="#fff" />`;
   const mouthFill = m.mouthFill ? "#0E7490" : "none";
+  const badge = includeBadge
+    ? `<g transform="translate(256,340)">
+      <circle r="46" fill="#FFFFFF" stroke="#0B4A57" stroke-width="6" />
+      <rect x="-8" y="-26" width="16" height="52" rx="4" fill="#0EA5B0" />
+      <rect x="-26" y="-8" width="52" height="16" rx="4" fill="#0EA5B0" />
+    </g>`
+    : "";
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="80 50 352 352" fill="none">
     <line x1="256" y1="118" x2="256" y2="90" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" />
     <circle cx="256" cy="80" r="12" fill="#5EEAD4" />
@@ -701,22 +724,32 @@ function mascotSvgMarkup(mood, size = 512) {
       ${rightEye}
       <path d="${m.mouth}" stroke="#0E7490" stroke-width="2.2" stroke-linecap="round" fill="${mouthFill}" />
     </g>
-    <g transform="translate(256,340)">
-      <circle r="46" fill="#FFFFFF" stroke="#0B4A57" stroke-width="6" />
-      <rect x="-8" y="-26" width="16" height="52" rx="4" fill="#0EA5B0" />
-      <rect x="-26" y="-8" width="52" height="16" rx="4" fill="#0EA5B0" />
-    </g>
+    ${badge}
   </svg>`;
 }
-function getMascotSvgDataUrl(mood) {
-  return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(mascotSvgMarkup(mood))));
+function getMascotSvgDataUrl(mood, includeBadge = true) {
+  return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(mascotSvgMarkup(mood, 512, includeBadge))));
 }
 
-/* A real-time WebGL "chrome orb" showcase for Clarity — a glossy,          */
-/* studio-lit sphere in MediReach's colors that gently turns like a product */
-/* render, with Clarity's own face art floating on its front. Falls back to */
-/* the flat <Mascot> art if WebGL/Three.js isn't available.                 */
-function ClarityOrb3D({ mood = "calm", talking = false, size = 220 }) {
+/* The medical-cross badge art from <Mascot>'s lower group, as its own      */
+/* standalone SVG markup — used as a texture on the 3D figure's chest.      */
+function badgeSvgMarkup(size = 256) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="-52 -52 104 104" fill="none">
+    <circle r="46" fill="#FFFFFF" stroke="#0B4A57" stroke-width="6" />
+    <rect x="-8" y="-26" width="16" height="52" rx="4" fill="#0EA5B0" />
+    <rect x="-26" y="-8" width="52" height="16" rx="4" fill="#0EA5B0" />
+  </svg>`;
+}
+function getBadgeSvgDataUrl() {
+  return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(badgeSvgMarkup())));
+}
+
+/* A real-time WebGL full-body showcase for Clarity — a glossy, studio-lit  */
+/* chrome android (head, torso, arms, hover base) in MediReach's colors     */
+/* that gently turns like a product render, with Clarity's own face and    */
+/* badge art floating on it. Falls back to the flat <Mascot> art if         */
+/* WebGL/Three.js isn't available.                                          */
+function ClarityFigure3D({ mood = "calm", talking = false, width = 480, height = 620 }) {
   const mountRef = useRef(null);
   const stateRef = useRef({});
   const [threeReady, setThreeReady] = useState(!!window.THREE);
@@ -747,13 +780,16 @@ function ClarityOrb3D({ mood = "calm", talking = false, size = 220 }) {
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     renderer.setPixelRatio(dpr);
-    renderer.setSize(size, size);
+    renderer.setSize(width, height, false);
+    renderer.domElement.style.width = "100%";
+    renderer.domElement.style.height = "100%";
+    renderer.domElement.style.display = "block";
     renderer.setClearColor(0x000000, 0);
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 10);
-    camera.position.set(0, 0, 3.1);
+    const camera = new THREE.PerspectiveCamera(28, width / height, 0.1, 20);
+    camera.position.set(0, 0.9, 8.4);
 
     const pmrem = new THREE.PMREMGenerator(renderer);
     scene.environment = pmrem.fromScene(new window.RoomEnvironment(), 0.04).texture;
@@ -761,27 +797,85 @@ function ClarityOrb3D({ mood = "calm", talking = false, size = 220 }) {
     const group = new THREE.Group();
     scene.add(group);
 
-    const sphereGeo = new THREE.SphereGeometry(1, 64, 64);
-    const sphereMat = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color("#2563EB"),
+    const chrome = (color) => new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(color),
       metalness: 0.85,
-      roughness: 0.16,
+      roughness: 0.18,
       clearcoat: 1,
-      clearcoatRoughness: 0.08,
+      clearcoatRoughness: 0.1,
       envMapIntensity: 1.5,
     });
-    const sphere = new THREE.Mesh(sphereGeo, sphereMat);
-    group.add(sphere);
+    const bodyMat = chrome("#2563EB");
+    const disposables = [bodyMat];
 
-    const faceGeo = new THREE.PlaneGeometry(1.9, 1.9);
+    // Head
+    const headGeo = new THREE.SphereGeometry(0.62, 64, 64);
+    const head = new THREE.Mesh(headGeo, bodyMat);
+    head.position.y = 1.72;
+    group.add(head);
+    disposables.push(headGeo);
+
+    const faceGeo = new THREE.PlaneGeometry(1.16, 1.16);
     const faceMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, toneMapped: false });
     const facePlane = new THREE.Mesh(faceGeo, faceMat);
-    facePlane.position.z = 0.98;
+    facePlane.position.set(0, 1.72, 0.72);
     group.add(facePlane);
+    disposables.push(faceGeo, faceMat);
+
+    // Neck
+    const neckGeo = new THREE.CylinderGeometry(0.16, 0.2, 0.22, 24);
+    const neck = new THREE.Mesh(neckGeo, bodyMat);
+    neck.position.y = 1.22;
+    group.add(neck);
+    disposables.push(neckGeo);
+
+    // Torso
+    const torsoGeo = new THREE.CapsuleGeometry(0.66, 1.05, 8, 32);
+    const torso = new THREE.Mesh(torsoGeo, bodyMat);
+    torso.position.y = 0.35;
+    group.add(torso);
+    disposables.push(torsoGeo);
+
+    const badgeGeo = new THREE.CircleGeometry(0.34, 40);
+    const badgeMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, toneMapped: false });
+    const badgePlane = new THREE.Mesh(badgeGeo, badgeMat);
+    badgePlane.position.set(0, 0.55, 0.72);
+    group.add(badgePlane);
+    disposables.push(badgeGeo, badgeMat);
+
+    // Arms
+    const armGeo = new THREE.CapsuleGeometry(0.16, 0.85, 6, 20);
+    [-1, 1].forEach((side) => {
+      const arm = new THREE.Mesh(armGeo, bodyMat);
+      arm.position.set(side * 0.92, 0.25, 0);
+      arm.rotation.z = side * 0.22;
+      group.add(arm);
+    });
+    disposables.push(armGeo);
+
+    // Antenna, matching <Mascot>
+    const antennaGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.3, 12);
+    const antenna = new THREE.Mesh(antennaGeo, chrome("#E2E8F0"));
+    antenna.position.y = 2.5;
+    group.add(antenna);
+    disposables.push(antennaGeo, antenna.material);
+    const tipGeo = new THREE.SphereGeometry(0.07, 20, 20);
+    const tip = new THREE.Mesh(tipGeo, new THREE.MeshPhysicalMaterial({ color: 0x5eead4, emissive: 0x14b8a6, emissiveIntensity: 0.6, metalness: 0.3, roughness: 0.2 }));
+    tip.position.y = 2.68;
+    group.add(tip);
+    disposables.push(tipGeo, tip.material);
+
+    // Hover base
+    const baseGeo = new THREE.TorusGeometry(0.62, 0.09, 20, 48);
+    const base = new THREE.Mesh(baseGeo, chrome("#14B8A6"));
+    base.position.y = -0.85;
+    base.rotation.x = Math.PI / 2;
+    group.add(base);
+    disposables.push(baseGeo, base.material);
 
     const loader = new THREE.TextureLoader();
     const applyFaceTexture = (m) => {
-      loader.load(getMascotSvgDataUrl(m), (tex) => {
+      loader.load(getMascotSvgDataUrl(m, false), (tex) => {
         if (disposed) { tex.dispose(); return; }
         tex.colorSpace = THREE.SRGBColorSpace;
         faceMat.map = tex;
@@ -789,23 +883,29 @@ function ClarityOrb3D({ mood = "calm", talking = false, size = 220 }) {
       });
     };
     applyFaceTexture(mood);
+    loader.load(getBadgeSvgDataUrl(), (tex) => {
+      if (disposed) { tex.dispose(); return; }
+      tex.colorSpace = THREE.SRGBColorSpace;
+      badgeMat.map = tex;
+      badgeMat.needsUpdate = true;
+    });
 
     scene.add(new THREE.HemisphereLight(0xdfe9ff, 0x0a0f1f, 0.9));
-    const rim1 = new THREE.PointLight(0x2563eb, 18, 8); rim1.position.set(-2, 1.4, 1.6); scene.add(rim1);
-    const rim2 = new THREE.PointLight(0x14b8a6, 16, 8); rim2.position.set(2, -0.6, 1.4); scene.add(rim2);
-    const rim3 = new THREE.PointLight(0xa855f7, 14, 8); rim3.position.set(0, 1.8, -1.6); scene.add(rim3);
-    const key = new THREE.PointLight(0xffffff, 6, 8); key.position.set(0.6, 0.9, 2.2); scene.add(key);
+    const rim1 = new THREE.PointLight(0x2563eb, 26, 12); rim1.position.set(-3, 2, 2.4); scene.add(rim1);
+    const rim2 = new THREE.PointLight(0x14b8a6, 22, 12); rim2.position.set(3, -0.8, 2); scene.add(rim2);
+    const rim3 = new THREE.PointLight(0xa855f7, 20, 12); rim3.position.set(0, 2.6, -2.4); scene.add(rim3);
+    const key = new THREE.PointLight(0xffffff, 9, 12); key.position.set(1, 1.6, 3.4); scene.add(key);
 
     let raf = null;
     const start = performance.now();
     const animate = (now) => {
       const t = (now - start) / 1000;
       if (!reduceMotion) {
-        group.rotation.y = Math.sin(t * 0.45) * 0.85;
-        group.rotation.x = Math.sin(t * 0.3) * 0.06;
-        group.position.y = Math.sin(t * 0.9) * 0.04;
+        group.rotation.y = Math.sin(t * 0.4) * 0.6;
+        group.rotation.x = Math.sin(t * 0.28) * 0.04;
+        group.position.y = Math.sin(t * 0.8) * 0.06;
       } else {
-        group.rotation.y = 0.25;
+        group.rotation.y = 0.2;
       }
       renderer.render(scene, camera);
       raf = requestAnimationFrame(animate);
@@ -817,13 +917,14 @@ function ClarityOrb3D({ mood = "calm", talking = false, size = 220 }) {
     return () => {
       disposed = true;
       if (raf) cancelAnimationFrame(raf);
-      sphereGeo.dispose(); sphereMat.dispose(); faceGeo.dispose(); faceMat.dispose();
+      disposables.forEach((d) => d.dispose());
       if (faceMat.map) faceMat.map.dispose();
+      if (badgeMat.map) badgeMat.map.dispose();
       pmrem.dispose();
       renderer.dispose();
       if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
     };
-  }, [threeReady, webglFailed, size]);
+  }, [threeReady, webglFailed, width, height]);
 
   // Swap the face texture (without rebuilding the whole scene) when mood changes.
   useEffect(() => {
@@ -831,9 +932,9 @@ function ClarityOrb3D({ mood = "calm", talking = false, size = 220 }) {
   }, [mood]);
 
   if (webglFailed) {
-    return <Mascot size={size * 0.55} mood={mood} talking={talking} />;
+    return <Mascot size={Math.min(width, height) * 0.4} mood={mood} talking={talking} />;
   }
-  return <div ref={mountRef} style={{ width: size, height: size }} />;
+  return <div ref={mountRef} style={{ width: "100%", maxWidth: width, aspectRatio: `${width} / ${height}` }} />;
 }
 
 /* Strips leading `[[mood:x]]` and `[[memory: ...]]` tags off a reply.       */
@@ -1063,44 +1164,45 @@ function Hero({ onStart }) {
 
   return (
     <div className="mb-hero-dark-wrap">
-      <div className="mb-glass-chip" style={{ top: "18%", left: "6%" }}>
+      <div className="mb-glass-chip" style={{ top: "12%", left: "4%" }}>
         <ShieldCheck size={16} color="#5EEAD4" /> Judgment-free, always
       </div>
-      <div className="mb-glass-chip" style={{ bottom: "16%", right: "6%", animationDelay: "-3.5s" }}>
+      <div className="mb-glass-chip" style={{ bottom: "10%", left: "6%", animationDelay: "-3.5s" }}>
         <HeartPulse size={16} color="#F9A8D4" /> Here whenever you need
       </div>
 
-      <section style={{ position: "relative", maxWidth: 720, margin: "0 auto", padding: "4.5rem 1.25rem 3rem", textAlign: "center", zIndex: 1, overflow: "hidden" }}>
+      <section className="mb-hero-grid" style={{ position: "relative", maxWidth: 1180, margin: "0 auto", padding: "4.5rem 1.25rem 2rem", zIndex: 1 }}>
         <div className="mb-grid-floor" aria-hidden="true" />
 
-        <div style={{ position: "relative", zIndex: 1 }}>
+        <div style={{ position: "relative", zIndex: 1, textAlign: "left", maxWidth: 560 }}>
           <p style={{ display: "inline-block", background: "var(--grad-2)", color: "#fff", fontWeight: 700, fontSize: "0.78rem", padding: "0.4rem 0.9rem", borderRadius: 999, letterSpacing: "0.02em", boxShadow: "0 8px 20px -6px rgba(20,184,166,0.5)" }}>
             ✨ A friendlier first step toward care
           </p>
-          <div
-            className="mb-avatar-hero"
-            onMouseEnter={() => react("playful")}
-            onClick={() => react("celebratory")}
-            role="button"
-            tabIndex={0}
-            aria-label="Say hi to Clarity"
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") react("celebratory"); }}
-          >
-            <ClarityOrb3D size={140} mood={heroMood} />
-          </div>
-          <h1 style={{ color: "#fff", fontSize: "clamp(2.3rem, 6vw, 3.8rem)", fontWeight: 800, margin: "1rem 0 1rem", lineHeight: 1.08, letterSpacing: "-0.01em" }}>
+          <h1 style={{ color: "#fff", fontSize: "clamp(2.4rem, 5.5vw, 4.2rem)", fontWeight: 800, margin: "1.1rem 0 1.1rem", lineHeight: 1.05, letterSpacing: "-0.01em" }}>
             Healthcare questions,{" "}
             <span className="mb-gradient-text-anim">
               without the dread.
             </span>
           </h1>
-          <p style={{ color: "rgba(255,255,255,0.65)", fontSize: "1.08rem", maxWidth: 540, margin: "0 auto 2rem" }}>
+          <p style={{ color: "rgba(255,255,255,0.65)", fontSize: "1.1rem", maxWidth: 500, margin: "0 0 2rem" }}>
             MediReach closes the gap between people and the healthcare they're putting off. Clarity, its AI companion,
             meets you in the moment before the appointment — reassuring where it can be, direct where it has to be.
           </p>
           <RippleButton className="mb-btn" onClick={onStart}>
             <MessageCircle size={17} /> Talk to Clarity
           </RippleButton>
+        </div>
+
+        <div
+          className="mb-hero-figure"
+          onMouseEnter={() => react("playful")}
+          onClick={() => react("celebratory")}
+          role="button"
+          tabIndex={0}
+          aria-label="Say hi to Clarity"
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") react("celebratory"); }}
+        >
+          <ClarityFigure3D width={520} height={680} mood={heroMood} />
         </div>
       </section>
     </div>
