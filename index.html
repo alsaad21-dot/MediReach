@@ -394,11 +394,28 @@ const GlobalStyles = () => (
       cursor: pointer; margin: -2rem -1rem -3rem 0;
       filter: drop-shadow(0 40px 70px rgba(37,99,235,0.35));
     }
+    .mb-figure-label {
+      position: absolute; top: 4%; left: 50%; transform: translateX(-50%);
+      z-index: 3; display: flex; align-items: center; gap: 0.45rem;
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 999px; padding: 0.4rem 0.95rem;
+      color: #fff; font-weight: 800; font-size: 0.82rem;
+      letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap;
+      box-shadow: 0 16px 30px -10px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.25);
+      animation: mb-float 8s ease-in-out infinite;
+    }
+    .mb-figure-label-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--grad-2);
+      box-shadow: 0 0 10px rgba(20,184,166,0.9);
+    }
     @media (max-width: 900px) {
       .mb-hero-grid { flex-direction: column; text-align: center; }
       .mb-hero-grid > div:first-child { text-align: center; max-width: 100% !important; margin: 0 auto; }
       .mb-hero-grid > div:first-child p { margin-left: auto; margin-right: auto; }
       .mb-hero-figure { margin: -1.5rem 0 -2rem; }
+      .mb-figure-label { top: 9%; }
     }
 
     /* ---- perspective grid floor (hero backdrop) ---- */
@@ -865,27 +882,27 @@ function ClarityFigure3D({ mood = "calm", talking = false, width = 480, height =
     group.add(hips);
     disposables.push(hipGeo);
 
-    // Shoulder joints, arms (upper arm + forearm, tapered — not thick balloon capsules)
+    // Shoulder joints + a single straight tapered arm per side (a two-segment
+    // elbow needs real joint math to stay connected — one clean piece hangs
+    // straight and true instead of drifting out of line).
     const shoulderGeo = new THREE.SphereGeometry(0.14, 24, 24);
-    const upperArmGeo = new THREE.CylinderGeometry(0.12, 0.09, 0.62, 16);
-    const forearmGeo = new THREE.CylinderGeometry(0.09, 0.075, 0.56, 16);
+    const armLength = 1.05;
+    const armGeo = new THREE.CylinderGeometry(0.115, 0.075, armLength, 20);
+    const armTilt = 0.1;
     [-1, 1].forEach((side) => {
+      const shoulderX = side * 0.52, shoulderY = 0.95;
       const shoulder = new THREE.Mesh(shoulderGeo, bodyMat);
-      shoulder.position.set(side * 0.52, 0.95, 0);
+      shoulder.position.set(shoulderX, shoulderY, 0);
       group.add(shoulder);
 
-      const upperArm = new THREE.Mesh(upperArmGeo, bodyMat);
-      upperArm.position.set(side * 0.58, 0.68, 0.02);
-      upperArm.rotation.z = side * 0.12;
-      group.add(upperArm);
-
-      const forearm = new THREE.Mesh(forearmGeo, bodyMat);
-      forearm.position.set(side * 0.62, 0.14, 0.08);
-      forearm.rotation.z = side * 0.06;
-      forearm.rotation.x = -0.1;
-      group.add(forearm);
+      // Hang the arm from the shoulder pivot so it stays attached regardless of tilt.
+      const arm = new THREE.Mesh(armGeo, bodyMat);
+      arm.position.set(shoulderX, shoulderY, 0);
+      arm.rotation.z = side * armTilt;
+      arm.translateY(-armLength / 2);
+      group.add(arm);
     });
-    disposables.push(shoulderGeo, upperArmGeo, forearmGeo);
+    disposables.push(shoulderGeo, armGeo);
 
     // Legs (thigh + shin, tapered) and feet
     const thighGeo = new THREE.CylinderGeometry(0.17, 0.13, 0.62, 20);
@@ -1209,13 +1226,6 @@ function Hero({ onStart }) {
 
   return (
     <div className="mb-hero-dark-wrap">
-      <div className="mb-glass-chip" style={{ top: "12%", left: "4%" }}>
-        <ShieldCheck size={16} color="#5EEAD4" /> Judgment-free, always
-      </div>
-      <div className="mb-glass-chip" style={{ bottom: "10%", left: "6%", animationDelay: "-3.5s" }}>
-        <HeartPulse size={16} color="#F9A8D4" /> Here whenever you need
-      </div>
-
       <section className="mb-hero-grid" style={{ position: "relative", maxWidth: 1180, margin: "0 auto", padding: "4.5rem 1.25rem 2rem", zIndex: 1 }}>
         <div className="mb-grid-floor" aria-hidden="true" />
 
@@ -1247,6 +1257,7 @@ function Hero({ onStart }) {
           aria-label="Say hi to Clarity"
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") react("celebratory"); }}
         >
+          <div className="mb-figure-label"><span className="mb-figure-label-dot" />Clarity</div>
           <ClarityFigure3D width={520} height={680} mood={heroMood} />
         </div>
       </section>
