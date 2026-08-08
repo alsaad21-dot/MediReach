@@ -319,6 +319,7 @@ const GlobalStyles = () => (
       animation: mb-avatar-bob 3.2s ease-in-out infinite;
       box-shadow: 0 20px 45px rgba(37,99,235,0.35), inset 0 3px 6px rgba(255,255,255,0.4), inset 0 -6px 12px rgba(0,0,0,0.18);
       cursor: pointer; transition: filter 0.2s ease, transform 0.2s ease;
+      perspective: 800px;
     }
     .mb-avatar-hero::before {
       content: ""; position: absolute; inset: -16px; border-radius: 50%; z-index: -1;
@@ -326,17 +327,63 @@ const GlobalStyles = () => (
       filter: blur(22px); opacity: 0.6;
       animation: mb-spin 7s linear infinite;
     }
+    /* glass/chrome specular sheen, sweeping slowly across the sphere */
+    .mb-avatar-hero::after {
+      content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+      background: linear-gradient(125deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 30%, rgba(255,255,255,0) 60%, rgba(255,255,255,0.3) 100%);
+      mix-blend-mode: overlay;
+      animation: mb-sheen-sweep 5s ease-in-out infinite;
+    }
+    @keyframes mb-sheen-sweep {
+      0%, 100% { opacity: 0.55; transform: rotate(-8deg); }
+      50% { opacity: 0.9; transform: rotate(8deg); }
+    }
     @keyframes mb-spin { to { transform: rotate(360deg); } }
     .mb-avatar-hero:hover { filter: brightness(1.08); transform: scale(1.04) translateY(-2px); }
     .mb-avatar-hero:active { filter: brightness(0.95); transform: scale(0.98); }
+    .mb-orb-inner {
+      width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+      transform-style: preserve-3d;
+      animation: mb-orb-turn 4.5s ease-in-out infinite;
+    }
+    @keyframes mb-orb-turn {
+      0%, 100% { transform: rotateY(-24deg); }
+      50% { transform: rotateY(24deg); }
+    }
+
+    /* ---- dark glowing hero showcase (Foxglove-style) ---- */
+    .mb-hero-dark-wrap {
+      position: relative; z-index: 1; overflow: hidden;
+      background:
+        radial-gradient(ellipse 760px 480px at 22% -6%, rgba(37,99,235,0.55), transparent 60%),
+        radial-gradient(ellipse 640px 460px at 82% 22%, rgba(168,85,247,0.4), transparent 60%),
+        radial-gradient(ellipse 600px 420px at 50% 105%, rgba(20,184,166,0.35), transparent 60%),
+        linear-gradient(180deg, #05070d 0%, #0a0f1f 55%, var(--bg) 100%);
+    }
+    .mb-glass-chip {
+      position: absolute;
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 16px;
+      padding: 0.65rem 1rem;
+      color: #fff;
+      font-size: 0.8rem; font-weight: 700; white-space: nowrap;
+      display: flex; align-items: center; gap: 0.5rem;
+      box-shadow: 0 24px 44px -14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.25);
+      animation: mb-float 8s ease-in-out infinite;
+      z-index: 2;
+    }
+    @media (max-width: 640px) { .mb-glass-chip { display: none; } }
 
     /* ---- perspective grid floor (hero backdrop) ---- */
     .mb-grid-floor {
       position: absolute; left: 50%; bottom: -30px; width: 160%; height: 280px;
       transform: translateX(-50%) perspective(600px) rotateX(64deg);
       background-image:
-        linear-gradient(rgba(37,99,235,0.22) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(37,99,235,0.22) 1px, transparent 1px);
+        linear-gradient(rgba(148,197,255,0.4) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148,197,255,0.4) 1px, transparent 1px);
       background-size: 46px 46px;
       -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.85), transparent 78%);
       mask-image: linear-gradient(to top, rgba(0,0,0,0.85), transparent 78%);
@@ -849,38 +896,50 @@ function Hero({ onStart }) {
   useEffect(() => () => { if (reactTimeout.current) clearTimeout(reactTimeout.current); }, []);
 
   return (
-    <section style={{ position: "relative", maxWidth: 720, margin: "0 auto", padding: "3.5rem 1.25rem 2.5rem", textAlign: "center", zIndex: 1, overflow: "hidden" }}>
-      <div className="mb-grid-floor" aria-hidden="true" />
-      <div style={{ position: "relative", zIndex: 1 }}>
-        <p style={{ display: "inline-block", background: "var(--grad-2)", color: "#fff", fontWeight: 700, fontSize: "0.78rem", padding: "0.4rem 0.9rem", borderRadius: 999, letterSpacing: "0.02em", boxShadow: "0 8px 20px -6px rgba(20,184,166,0.5)" }}>
-          ✨ A friendlier first step toward care
-        </p>
-        <div
-          className="mb-avatar-hero"
-          onMouseEnter={() => react("playful")}
-          onClick={() => react("celebratory")}
-          role="button"
-          tabIndex={0}
-          aria-label="Say hi to Clarity"
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") react("celebratory"); }}
-        >
-          <Mascot size={118} mood={heroMood} />
-        </div>
-        <h1 style={{ fontSize: "clamp(2.3rem, 6vw, 3.8rem)", fontWeight: 800, margin: "1rem 0 1rem", lineHeight: 1.08, letterSpacing: "-0.01em" }}>
-          Healthcare questions,{" "}
-          <span className="mb-gradient-text-anim">
-            without the dread.
-          </span>
-        </h1>
-        <p style={{ color: "var(--text-muted)", fontSize: "1.08rem", maxWidth: 540, margin: "0 auto 2rem" }}>
-          MediReach closes the gap between people and the healthcare they're putting off. Clarity, its AI companion,
-          meets you in the moment before the appointment — reassuring where it can be, direct where it has to be.
-        </p>
-        <RippleButton className="mb-btn" onClick={onStart}>
-          <MessageCircle size={17} /> Talk to Clarity
-        </RippleButton>
+    <div className="mb-hero-dark-wrap">
+      <div className="mb-glass-chip" style={{ top: "18%", left: "6%" }}>
+        <ShieldCheck size={16} color="#5EEAD4" /> Judgment-free, always
       </div>
-    </section>
+      <div className="mb-glass-chip" style={{ bottom: "16%", right: "6%", animationDelay: "-3.5s" }}>
+        <HeartPulse size={16} color="#F9A8D4" /> Here whenever you need
+      </div>
+
+      <section style={{ position: "relative", maxWidth: 720, margin: "0 auto", padding: "4.5rem 1.25rem 3rem", textAlign: "center", zIndex: 1, overflow: "hidden" }}>
+        <div className="mb-grid-floor" aria-hidden="true" />
+
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <p style={{ display: "inline-block", background: "var(--grad-2)", color: "#fff", fontWeight: 700, fontSize: "0.78rem", padding: "0.4rem 0.9rem", borderRadius: 999, letterSpacing: "0.02em", boxShadow: "0 8px 20px -6px rgba(20,184,166,0.5)" }}>
+            ✨ A friendlier first step toward care
+          </p>
+          <div
+            className="mb-avatar-hero"
+            onMouseEnter={() => react("playful")}
+            onClick={() => react("celebratory")}
+            role="button"
+            tabIndex={0}
+            aria-label="Say hi to Clarity"
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") react("celebratory"); }}
+          >
+            <div className="mb-orb-inner">
+              <Mascot size={118} mood={heroMood} />
+            </div>
+          </div>
+          <h1 style={{ color: "#fff", fontSize: "clamp(2.3rem, 6vw, 3.8rem)", fontWeight: 800, margin: "1rem 0 1rem", lineHeight: 1.08, letterSpacing: "-0.01em" }}>
+            Healthcare questions,{" "}
+            <span className="mb-gradient-text-anim">
+              without the dread.
+            </span>
+          </h1>
+          <p style={{ color: "rgba(255,255,255,0.65)", fontSize: "1.08rem", maxWidth: 540, margin: "0 auto 2rem" }}>
+            MediReach closes the gap between people and the healthcare they're putting off. Clarity, its AI companion,
+            meets you in the moment before the appointment — reassuring where it can be, direct where it has to be.
+          </p>
+          <RippleButton className="mb-btn" onClick={onStart}>
+            <MessageCircle size={17} /> Talk to Clarity
+          </RippleButton>
+        </div>
+      </section>
+    </div>
   );
 }
 
