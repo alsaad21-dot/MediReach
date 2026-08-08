@@ -10,6 +10,21 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+  import * as THREE from "three";
+  import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+  window.THREE = THREE;
+  window.RoomEnvironment = RoomEnvironment;
+  window.dispatchEvent(new Event("mb-three-ready"));
+</script>
 </head>
 <body style="margin:0;">
 <div id="root"></div>
@@ -341,15 +356,6 @@ const GlobalStyles = () => (
     @keyframes mb-spin { to { transform: rotate(360deg); } }
     .mb-avatar-hero:hover { filter: brightness(1.08); transform: scale(1.04) translateY(-2px); }
     .mb-avatar-hero:active { filter: brightness(0.95); transform: scale(0.98); }
-    .mb-orb-inner {
-      width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
-      transform-style: preserve-3d;
-      animation: mb-orb-turn 4.5s ease-in-out infinite;
-    }
-    @keyframes mb-orb-turn {
-      0%, 100% { transform: rotateY(-24deg); }
-      50% { transform: rotateY(24deg); }
-    }
 
     /* ---- dark glowing hero showcase (Foxglove-style) ---- */
     .mb-hero-dark-wrap {
@@ -670,6 +676,166 @@ function Mascot({ size = 22, mood = "calm", talking = false }) {
   );
 }
 
+/* Builds the exact same face art as <Mascot>, but as a plain markup string  */
+/* (from the same MOOD_META data) so it can be used as a WebGL texture in    */
+/* ClarityOrb3D without round-tripping through a nested React render.       */
+function mascotSvgMarkup(mood, size = 512) {
+  const m = MOOD_META[mood] || MOOD_META.calm;
+  const brows = m.brows
+    ? `<path d="${m.brows}" stroke="#0E7490" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.8" />`
+    : "";
+  const rightEye = m.wink
+    ? `<path d="M23.6 18h5" stroke="#0E7490" stroke-width="1.8" stroke-linecap="round" />`
+    : `<circle cx="26" cy="18" r="2.4" fill="#0E7490" /><circle cx="26.9" cy="17.1" r="0.7" fill="#fff" />`;
+  const mouthFill = m.mouthFill ? "#0E7490" : "none";
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="80 50 352 352" fill="none">
+    <line x1="256" y1="118" x2="256" y2="90" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" />
+    <circle cx="256" cy="80" r="12" fill="#5EEAD4" />
+    <rect x="146" y="118" width="220" height="190" rx="56" fill="#F4FBFC" stroke="#0B4A57" stroke-width="6" />
+    <rect x="122" y="185" width="26" height="56" rx="13" fill="#EAF6F7" stroke="#0B4A57" stroke-width="6" />
+    <rect x="364" y="185" width="26" height="56" rx="13" fill="#EAF6F7" stroke="#0B4A57" stroke-width="6" />
+    <g transform="translate(109.33 73.07) scale(7.333)">
+      ${brows}
+      <circle cx="14" cy="18" r="2.4" fill="#0E7490" />
+      <circle cx="14.9" cy="17.1" r="0.7" fill="#fff" />
+      ${rightEye}
+      <path d="${m.mouth}" stroke="#0E7490" stroke-width="2.2" stroke-linecap="round" fill="${mouthFill}" />
+    </g>
+    <g transform="translate(256,340)">
+      <circle r="46" fill="#FFFFFF" stroke="#0B4A57" stroke-width="6" />
+      <rect x="-8" y="-26" width="16" height="52" rx="4" fill="#0EA5B0" />
+      <rect x="-26" y="-8" width="52" height="16" rx="4" fill="#0EA5B0" />
+    </g>
+  </svg>`;
+}
+function getMascotSvgDataUrl(mood) {
+  return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(mascotSvgMarkup(mood))));
+}
+
+/* A real-time WebGL "chrome orb" showcase for Clarity — a glossy,          */
+/* studio-lit sphere in MediReach's colors that gently turns like a product */
+/* render, with Clarity's own face art floating on its front. Falls back to */
+/* the flat <Mascot> art if WebGL/Three.js isn't available.                 */
+function ClarityOrb3D({ mood = "calm", talking = false, size = 220 }) {
+  const mountRef = useRef(null);
+  const stateRef = useRef({});
+  const [threeReady, setThreeReady] = useState(!!window.THREE);
+  const [webglFailed, setWebglFailed] = useState(false);
+  const reduceMotion = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  useEffect(() => {
+    if (window.THREE) return;
+    const onReady = () => setThreeReady(true);
+    window.addEventListener("mb-three-ready", onReady);
+    return () => window.removeEventListener("mb-three-ready", onReady);
+  }, []);
+
+  // Scene setup — runs once Three.js is ready and the mount node exists.
+  useEffect(() => {
+    if (!threeReady || !mountRef.current || webglFailed) return;
+    const THREE = window.THREE;
+    const mount = mountRef.current;
+    let disposed = false;
+
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    } catch (e) {
+      setWebglFailed(true);
+      return;
+    }
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    renderer.setPixelRatio(dpr);
+    renderer.setSize(size, size);
+    renderer.setClearColor(0x000000, 0);
+    mount.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 10);
+    camera.position.set(0, 0, 3.1);
+
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new window.RoomEnvironment(), 0.04).texture;
+
+    const group = new THREE.Group();
+    scene.add(group);
+
+    const sphereGeo = new THREE.SphereGeometry(1, 64, 64);
+    const sphereMat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color("#2563EB"),
+      metalness: 0.85,
+      roughness: 0.16,
+      clearcoat: 1,
+      clearcoatRoughness: 0.08,
+      envMapIntensity: 1.5,
+    });
+    const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+    group.add(sphere);
+
+    const faceGeo = new THREE.PlaneGeometry(1.9, 1.9);
+    const faceMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, toneMapped: false });
+    const facePlane = new THREE.Mesh(faceGeo, faceMat);
+    facePlane.position.z = 0.98;
+    group.add(facePlane);
+
+    const loader = new THREE.TextureLoader();
+    const applyFaceTexture = (m) => {
+      loader.load(getMascotSvgDataUrl(m), (tex) => {
+        if (disposed) { tex.dispose(); return; }
+        tex.colorSpace = THREE.SRGBColorSpace;
+        faceMat.map = tex;
+        faceMat.needsUpdate = true;
+      });
+    };
+    applyFaceTexture(mood);
+
+    scene.add(new THREE.HemisphereLight(0xdfe9ff, 0x0a0f1f, 0.9));
+    const rim1 = new THREE.PointLight(0x2563eb, 18, 8); rim1.position.set(-2, 1.4, 1.6); scene.add(rim1);
+    const rim2 = new THREE.PointLight(0x14b8a6, 16, 8); rim2.position.set(2, -0.6, 1.4); scene.add(rim2);
+    const rim3 = new THREE.PointLight(0xa855f7, 14, 8); rim3.position.set(0, 1.8, -1.6); scene.add(rim3);
+    const key = new THREE.PointLight(0xffffff, 6, 8); key.position.set(0.6, 0.9, 2.2); scene.add(key);
+
+    let raf = null;
+    const start = performance.now();
+    const animate = (now) => {
+      const t = (now - start) / 1000;
+      if (!reduceMotion) {
+        group.rotation.y = Math.sin(t * 0.45) * 0.85;
+        group.rotation.x = Math.sin(t * 0.3) * 0.06;
+        group.position.y = Math.sin(t * 0.9) * 0.04;
+      } else {
+        group.rotation.y = 0.25;
+      }
+      renderer.render(scene, camera);
+      raf = requestAnimationFrame(animate);
+    };
+    raf = requestAnimationFrame(animate);
+
+    stateRef.current = { applyFaceTexture, renderer };
+
+    return () => {
+      disposed = true;
+      if (raf) cancelAnimationFrame(raf);
+      sphereGeo.dispose(); sphereMat.dispose(); faceGeo.dispose(); faceMat.dispose();
+      if (faceMat.map) faceMat.map.dispose();
+      pmrem.dispose();
+      renderer.dispose();
+      if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
+    };
+  }, [threeReady, webglFailed, size]);
+
+  // Swap the face texture (without rebuilding the whole scene) when mood changes.
+  useEffect(() => {
+    if (stateRef.current.applyFaceTexture) stateRef.current.applyFaceTexture(mood);
+  }, [mood]);
+
+  if (webglFailed) {
+    return <Mascot size={size * 0.55} mood={mood} talking={talking} />;
+  }
+  return <div ref={mountRef} style={{ width: size, height: size }} />;
+}
+
 /* Strips leading `[[mood:x]]` and `[[memory: ...]]` tags off a reply.       */
 /* Returns { mood, memory, text } — memory is null if the tag was missing.  */
 function parseReply(raw) {
@@ -920,9 +1086,7 @@ function Hero({ onStart }) {
             aria-label="Say hi to Clarity"
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") react("celebratory"); }}
           >
-            <div className="mb-orb-inner">
-              <Mascot size={118} mood={heroMood} />
-            </div>
+            <ClarityOrb3D size={140} mood={heroMood} />
           </div>
           <h1 style={{ color: "#fff", fontSize: "clamp(2.3rem, 6vw, 3.8rem)", fontWeight: 800, margin: "1rem 0 1rem", lineHeight: 1.08, letterSpacing: "-0.01em" }}>
             Healthcare questions,{" "}
