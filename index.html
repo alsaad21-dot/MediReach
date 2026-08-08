@@ -21,8 +21,10 @@
 <script type="module">
   import * as THREE from "three";
   import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+  import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
   window.THREE = THREE;
   window.RoomEnvironment = RoomEnvironment;
+  window.RoundedBoxGeometry = RoundedBoxGeometry;
   window.dispatchEvent(new Event("mb-three-ready"));
 </script>
 </head>
@@ -789,7 +791,7 @@ function ClarityFigure3D({ mood = "calm", talking = false, width = 480, height =
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(28, width / height, 0.1, 20);
-    camera.position.set(0, 0.9, 8.4);
+    camera.position.set(0, 0.45, 9.2);
 
     const pmrem = new THREE.PMREMGenerator(renderer);
     scene.environment = pmrem.fromScene(new window.RoomEnvironment(), 0.04).texture;
@@ -808,70 +810,113 @@ function ClarityFigure3D({ mood = "calm", talking = false, width = 480, height =
     const bodyMat = chrome("#2563EB");
     const disposables = [bodyMat];
 
-    // Head
-    const headGeo = new THREE.SphereGeometry(0.62, 64, 64);
+    const RBox = window.RoundedBoxGeometry;
+
+    // Head — a flat-fronted rounded box (matching <Mascot>'s rounded-rect head)
+    // so the face art sits flush against it instead of floating over a curved gap.
+    const headGeo = new RBox(1.0, 0.86, 0.56, 5, 0.24);
     const head = new THREE.Mesh(headGeo, bodyMat);
-    head.position.y = 1.72;
+    head.position.y = 1.62;
     group.add(head);
     disposables.push(headGeo);
 
-    const faceGeo = new THREE.PlaneGeometry(1.16, 1.16);
+    const faceGeo = new THREE.PlaneGeometry(0.94, 0.94);
     const faceMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, toneMapped: false });
     const facePlane = new THREE.Mesh(faceGeo, faceMat);
-    facePlane.position.set(0, 1.72, 0.72);
+    facePlane.position.set(0, 1.62, 0.31);
     group.add(facePlane);
     disposables.push(faceGeo, faceMat);
 
+    // Ears, matching <Mascot>'s side ear bumps
+    const earGeo = new RBox(0.14, 0.32, 0.24, 4, 0.06);
+    [-1, 1].forEach((side) => {
+      const ear = new THREE.Mesh(earGeo, bodyMat);
+      ear.position.set(side * 0.56, 1.62, 0);
+      group.add(ear);
+    });
+    disposables.push(earGeo);
+
     // Neck
-    const neckGeo = new THREE.CylinderGeometry(0.16, 0.2, 0.22, 24);
+    const neckGeo = new THREE.CylinderGeometry(0.13, 0.16, 0.16, 24);
     const neck = new THREE.Mesh(neckGeo, bodyMat);
-    neck.position.y = 1.22;
+    neck.position.y = 1.17;
     group.add(neck);
     disposables.push(neckGeo);
 
-    // Torso
-    const torsoGeo = new THREE.CapsuleGeometry(0.66, 1.05, 8, 32);
+    // Torso — tapered (broader shoulders, narrower waist) for a human silhouette
+    // rather than a round capsule.
+    const torsoGeo = new THREE.CylinderGeometry(0.46, 0.34, 1.05, 32, 1, false);
     const torso = new THREE.Mesh(torsoGeo, bodyMat);
-    torso.position.y = 0.35;
+    torso.position.y = 0.55;
     group.add(torso);
     disposables.push(torsoGeo);
 
-    const badgeGeo = new THREE.CircleGeometry(0.34, 40);
+    const badgeGeo = new THREE.CircleGeometry(0.26, 40);
     const badgeMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, toneMapped: false });
     const badgePlane = new THREE.Mesh(badgeGeo, badgeMat);
-    badgePlane.position.set(0, 0.55, 0.72);
+    badgePlane.position.set(0, 0.68, 0.5);
     group.add(badgePlane);
     disposables.push(badgeGeo, badgeMat);
 
-    // Arms
-    const armGeo = new THREE.CapsuleGeometry(0.16, 0.85, 6, 20);
+    // Hips
+    const hipGeo = new THREE.CylinderGeometry(0.34, 0.28, 0.28, 32);
+    const hips = new THREE.Mesh(hipGeo, bodyMat);
+    hips.position.y = -0.1;
+    group.add(hips);
+    disposables.push(hipGeo);
+
+    // Shoulder joints, arms (upper arm + forearm, tapered — not thick balloon capsules)
+    const shoulderGeo = new THREE.SphereGeometry(0.14, 24, 24);
+    const upperArmGeo = new THREE.CylinderGeometry(0.12, 0.09, 0.62, 16);
+    const forearmGeo = new THREE.CylinderGeometry(0.09, 0.075, 0.56, 16);
     [-1, 1].forEach((side) => {
-      const arm = new THREE.Mesh(armGeo, bodyMat);
-      arm.position.set(side * 0.92, 0.25, 0);
-      arm.rotation.z = side * 0.22;
-      group.add(arm);
+      const shoulder = new THREE.Mesh(shoulderGeo, bodyMat);
+      shoulder.position.set(side * 0.52, 0.95, 0);
+      group.add(shoulder);
+
+      const upperArm = new THREE.Mesh(upperArmGeo, bodyMat);
+      upperArm.position.set(side * 0.58, 0.68, 0.02);
+      upperArm.rotation.z = side * 0.12;
+      group.add(upperArm);
+
+      const forearm = new THREE.Mesh(forearmGeo, bodyMat);
+      forearm.position.set(side * 0.62, 0.14, 0.08);
+      forearm.rotation.z = side * 0.06;
+      forearm.rotation.x = -0.1;
+      group.add(forearm);
     });
-    disposables.push(armGeo);
+    disposables.push(shoulderGeo, upperArmGeo, forearmGeo);
+
+    // Legs (thigh + shin, tapered) and feet
+    const thighGeo = new THREE.CylinderGeometry(0.17, 0.13, 0.62, 20);
+    const shinGeo = new THREE.CylinderGeometry(0.12, 0.09, 0.58, 20);
+    const footGeo = new RBox(0.22, 0.12, 0.34, 4, 0.05);
+    [-1, 1].forEach((side) => {
+      const thigh = new THREE.Mesh(thighGeo, bodyMat);
+      thigh.position.set(side * 0.2, -0.55, 0);
+      group.add(thigh);
+
+      const shin = new THREE.Mesh(shinGeo, bodyMat);
+      shin.position.set(side * 0.2, -1.15, 0);
+      group.add(shin);
+
+      const foot = new THREE.Mesh(footGeo, bodyMat);
+      foot.position.set(side * 0.2, -1.5, 0.08);
+      group.add(foot);
+    });
+    disposables.push(thighGeo, shinGeo, footGeo);
 
     // Antenna, matching <Mascot>
-    const antennaGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.3, 12);
+    const antennaGeo = new THREE.CylinderGeometry(0.022, 0.022, 0.26, 12);
     const antenna = new THREE.Mesh(antennaGeo, chrome("#E2E8F0"));
-    antenna.position.y = 2.5;
+    antenna.position.y = 2.24;
     group.add(antenna);
     disposables.push(antennaGeo, antenna.material);
-    const tipGeo = new THREE.SphereGeometry(0.07, 20, 20);
+    const tipGeo = new THREE.SphereGeometry(0.06, 20, 20);
     const tip = new THREE.Mesh(tipGeo, new THREE.MeshPhysicalMaterial({ color: 0x5eead4, emissive: 0x14b8a6, emissiveIntensity: 0.6, metalness: 0.3, roughness: 0.2 }));
-    tip.position.y = 2.68;
+    tip.position.y = 2.4;
     group.add(tip);
     disposables.push(tipGeo, tip.material);
-
-    // Hover base
-    const baseGeo = new THREE.TorusGeometry(0.62, 0.09, 20, 48);
-    const base = new THREE.Mesh(baseGeo, chrome("#14B8A6"));
-    base.position.y = -0.85;
-    base.rotation.x = Math.PI / 2;
-    group.add(base);
-    disposables.push(baseGeo, base.material);
 
     const loader = new THREE.TextureLoader();
     const applyFaceTexture = (m) => {
