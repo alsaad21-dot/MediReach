@@ -403,12 +403,28 @@ const GlobalStyles = () => (
 
     .mb-hero-grid {
       display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
     }
+    .mb-hero-grid > div:first-child { flex: 1 1 420px; min-width: 0; }
     .mb-hero-figure {
-      position: relative; z-index: 0; flex-shrink: 0;
+      position: relative; z-index: 0;
+      flex: 0 0 auto; width: min(560px, 44vw);
       cursor: pointer; margin: -2rem -1rem -3rem 0;
       filter: drop-shadow(0 40px 70px rgba(37,99,235,0.35));
+    }
+    /* ---- wordmark-scale hero title: one huge dominant word, headline as a smaller sub-line ---- */
+    .mb-hero-title {
+      color: #fff; font-weight: 800; margin: 0.9rem 0 1.1rem;
+      font-size: clamp(4rem, 11vw, 8.5rem);
+      line-height: 0.86; letter-spacing: -0.04em;
+      display: block;
+    }
+    .mb-hero-title-sub {
+      display: block; font-size: clamp(1.5rem, 3vw, 2.1rem); font-weight: 700;
+      letter-spacing: -0.015em; line-height: 1.15; margin-top: 0.5rem;
+    }
+    @media (max-width: 900px) {
+      .mb-hero-title { font-size: clamp(3.2rem, 16vw, 5.5rem); }
     }
     .mb-figure-label {
       position: absolute; top: 4%; left: 50%; transform: translateX(-50%);
@@ -636,6 +652,21 @@ const GlobalStyles = () => (
 
     /* ---- stat count ---- */
     .mb-stat-value { font-size: 2.6rem; font-weight: 800; filter: drop-shadow(0 6px 14px rgba(37,99,235,0.3)); }
+
+    /* ---- radial gauge stat widgets ---- */
+    .mb-gauge-card { text-align: center; }
+    .mb-gauge { position: relative; width: 116px; height: 116px; margin: 0 auto 0.9rem; }
+    .mb-gauge svg { width: 100%; height: 100%; overflow: visible; }
+    .mb-gauge-ring { transition: stroke-dashoffset 1.3s cubic-bezier(0.22, 1, 0.36, 1); filter: drop-shadow(0 0 8px rgba(59,130,246,0.5)); }
+    .mb-gauge-value {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-size: 1.35rem; font-weight: 800; color: var(--text); letter-spacing: -0.02em;
+    }
+    .mb-gauge-label { font-size: 0.87rem; margin: 0; }
+    .mb-gauge-source { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.5rem; font-weight: 600; }
+    /* staggered vertical rhythm instead of a rigid aligned grid */
+    .mb-stagger-1 { transform: translateY(1.5rem); }
+    @media (max-width: 700px) { .mb-stagger-1 { transform: none; } }
 
     @media (prefers-reduced-motion: reduce) {
       .mb-root * { animation: none !important; transition: none !important; }
@@ -1318,17 +1349,18 @@ function Hero({ onStart }) {
       <section className="mb-hero-grid" style={{ position: "relative", maxWidth: 1180, margin: "0 auto", padding: "4.5rem 1.25rem 2rem", zIndex: 1 }}>
         <div className="mb-grid-floor" aria-hidden="true" />
 
-        <div style={{ position: "relative", zIndex: 1, textAlign: "left", maxWidth: 560 }}>
-          <p style={{ display: "inline-block", background: "var(--grad-2)", color: "#fff", fontWeight: 700, fontSize: "0.78rem", padding: "0.4rem 0.9rem", borderRadius: 999, letterSpacing: "0.02em", boxShadow: "0 8px 20px -6px rgba(20,184,166,0.5)" }}>
+        <div style={{ position: "relative", zIndex: 1, textAlign: "left", maxWidth: 640 }}>
+          <p style={{ display: "inline-block", background: "var(--grad-2)", color: "#fff", fontWeight: 700, fontSize: "0.76rem", padding: "0.35rem 0.85rem", borderRadius: 999, letterSpacing: "0.02em", boxShadow: "0 8px 20px -6px rgba(20,184,166,0.5)" }}>
             ✨ A friendlier first step toward care
           </p>
-          <h1 style={{ color: "#fff", fontSize: "clamp(2.4rem, 5.5vw, 4.2rem)", fontWeight: 800, margin: "1.1rem 0 1.1rem", lineHeight: 1.05, letterSpacing: "-0.01em" }}>
-            Healthcare questions,{" "}
-            <span className="mb-gradient-text-anim">
-              without the dread.
+          <h1 className="mb-hero-title">
+            Clarity
+            <span className="mb-hero-title-sub">
+              Healthcare questions,{" "}
+              <span className="mb-gradient-text-anim">without the dread.</span>
             </span>
           </h1>
-          <p style={{ color: "rgba(255,255,255,0.65)", fontSize: "1.1rem", maxWidth: 500, margin: "0 0 2rem" }}>
+          <p style={{ color: "rgba(255,255,255,0.65)", fontSize: "1.1rem", maxWidth: 480, margin: "0 0 2rem" }}>
             MediReach closes the gap between people and the healthcare they're putting off. Clarity, its AI companion,
             meets you in the moment before the appointment — reassuring where it can be, direct where it has to be.
           </p>
@@ -1347,23 +1379,45 @@ function Hero({ onStart }) {
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") react("celebratory"); }}
         >
           <div className="mb-figure-label"><span className="mb-figure-label-dot" />Clarity</div>
-          <ClarityFigure3D width={520} height={680} mood={heroMood} />
+          <ClarityFigure3D width={560} height={720} mood={heroMood} />
         </div>
       </section>
     </div>
   );
 }
 
-function StatCard({ stat }) {
+/* A radial gauge — circular progress ring with the percentage centered   */
+/* inside, echoing the reference's dial-style stat widgets instead of a    */
+/* flat number in a box.                                                   */
+function StatCard({ stat, index }) {
   const [ref, inView] = useInView();
   const count = useCountUp(stat.value, inView);
+  const r = 48;
+  const circumference = 2 * Math.PI * r;
+  const pct = Math.min(count, 100);
+  const offset = circumference * (1 - pct / 100);
+  const gradId = `mb-gauge-grad-${index}`;
   return (
-    <TiltCard ref={ref} className="mb-card hoverable" style={{ padding: "1.3rem" }}>
-      <div className="mb-stat-value" style={{ background: "var(--grad-1)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>
-        {count}{stat.suffix}
+    <TiltCard ref={ref} className={`mb-card mb-gauge-card hoverable mb-stagger-${index % 2}`} style={{ padding: "1.5rem 1.25rem" }}>
+      <div className="mb-gauge">
+        <svg viewBox="0 0 120 120" width="120" height="120">
+          <circle cx="60" cy="60" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="9" />
+          <circle
+            cx="60" cy="60" r={r} fill="none" stroke={`url(#${gradId})`} strokeWidth="9"
+            strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset}
+            transform="rotate(-90 60 60)" className="mb-gauge-ring"
+          />
+          <defs>
+            <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="var(--primary)" />
+              <stop offset="100%" stopColor="var(--secondary)" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <div className="mb-gauge-value">{count}{stat.suffix}</div>
       </div>
-      <p style={{ fontSize: "0.88rem", marginTop: "0.4rem" }}>{stat.label}</p>
-      <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "0.6rem", fontWeight: 600 }}>{stat.source}</p>
+      <p className="mb-gauge-label">{stat.label}</p>
+      <p className="mb-gauge-source">{stat.source}</p>
     </TiltCard>
   );
 }
@@ -1379,8 +1433,8 @@ function StatsSection() {
         </p>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "1.1rem" }}>
-        {STATS.map((s) => (
-          <StatCard key={s.label} stat={s} />
+        {STATS.map((s, i) => (
+          <StatCard key={s.label} stat={s} index={i} />
         ))}
       </div>
     </section>
