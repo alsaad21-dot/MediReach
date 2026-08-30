@@ -2218,18 +2218,28 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
               ))}
             </div>
             <div className="mb-sidebar-footer">
-              {fullName && <div style={{ fontWeight: 700, color: "var(--text)", marginBottom: "0.15rem" }}>{fullName}</div>}
-              {session.user.email}
-              <br />
-              <button onClick={() => setEditingProfile(true)} className="mb-navlink" style={{ padding: 0, fontSize: "0.76rem", marginTop: "0.3rem" }}>Edit profile</button>
-              {" · "}
-              <button onClick={onSignOut} className="mb-navlink" style={{ padding: 0, fontSize: "0.76rem" }}>Sign out</button>
+              {session.user.is_anonymous ? (
+                <>
+                  Chatting as a guest — your conversations are saved, just not linked to an email.
+                  <br />
+                  <button onClick={onSignOut} className="mb-navlink" style={{ padding: 0, fontSize: "0.76rem", marginTop: "0.3rem" }}>Sign out</button>
+                </>
+              ) : (
+                <>
+                  {fullName && <div style={{ fontWeight: 700, color: "var(--text)", marginBottom: "0.15rem" }}>{fullName}</div>}
+                  {session.user.email}
+                  <br />
+                  <button onClick={() => setEditingProfile(true)} className="mb-navlink" style={{ padding: 0, fontSize: "0.76rem", marginTop: "0.3rem" }}>Edit profile</button>
+                  {" · "}
+                  <button onClick={onSignOut} className="mb-navlink" style={{ padding: 0, fontSize: "0.76rem" }}>Sign out</button>
+                </>
+              )}
             </div>
           </>
         ) : (
           <div className="mb-sidebar-list" style={{ paddingTop: "0.5rem" }}>
             <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", padding: "0.5rem 0.7rem" }}>
-              Chatting as a guest — sign in to save conversations and see them listed here.
+              Conversation history isn't available right now.
             </p>
           </div>
         )}
@@ -2536,7 +2546,7 @@ function AdminGallery({ isAdmin }) {
       )}
 
       {!loading && photos.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "0.9rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, 150px)", gap: "0.9rem" }}>
           {photos.map((p) => (
             <button
               key={p.id}
@@ -2594,11 +2604,11 @@ function HomePage({ onGoToChat }) {
   );
 }
 
-function ChatPage({ session, sessionLoading, onSignOut, guest, onGuest, onGoHome }) {
+function ChatPage({ session, sessionLoading, onSignOut, onGuest, guestLoading, guestError, onGoHome }) {
   if (sessionLoading) {
     return <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.9rem", paddingTop: "3rem" }}>Loading…</p>;
   }
-  if (session || !SUPABASE_READY || guest) {
+  if (session || !SUPABASE_READY) {
     return <ChatWorkspace session={session} onSignOut={onSignOut} onGoHome={onGoHome} />;
   }
   return (
@@ -2609,8 +2619,15 @@ function ChatPage({ session, sessionLoading, onSignOut, guest, onGuest, onGoHome
       </p>
       <AuthPanel />
       <p style={{ textAlign: "center", marginTop: "1.25rem" }}>
-        <button className="mb-navlink" onClick={onGuest}>Continue as guest — skip saving history</button>
+        <button className="mb-navlink" onClick={onGuest} disabled={guestLoading}>
+          {guestLoading ? "Starting…" : "Continue as guest — not linked to an email, but still saved"}
+        </button>
       </p>
+      {guestError && (
+        <p style={{ textAlign: "center", color: "var(--danger)", fontSize: "0.82rem", marginTop: "0.6rem" }}>
+          Couldn't start a guest session: {guestError}
+        </p>
+      )}
     </div>
   );
 }
@@ -2622,8 +2639,9 @@ function App() {
   const scrollY = useScrollY();
   const [session, setSession] = useState(null);
   const [sessionLoading, setSessionLoading] = useState(SUPABASE_READY);
-  const [guest, setGuest] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [guestLoading, setGuestLoading] = useState(false);
+  const [guestError, setGuestError] = useState(null);
 
   useEffect(() => {
     if (!SUPABASE_READY) return;
@@ -2636,6 +2654,20 @@ function App() {
     });
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  // "Continue as guest" now creates a real (if nameless) Supabase account via
+  // anonymous sign-in, rather than a local-only flag — so guest chats and
+  // photos are saved exactly like a signed-in user's, and show up in the
+  // admin gallery. Requires Anonymous Sign-Ins to be turned on in the
+  // Supabase dashboard (Authentication → Sign In / Providers).
+  const startGuest = async () => {
+    if (!SUPABASE_READY) return;
+    setGuestLoading(true);
+    setGuestError(null);
+    const { error } = await supabaseClient.auth.signInAnonymously();
+    setGuestLoading(false);
+    if (error) setGuestError(error.message);
+  };
 
   // Admin status is enforced server-side by RLS (see setup notes) — this is
   // only used to decide whether to show the nav link and page locally.
@@ -2667,12 +2699,11 @@ function App() {
 
   const goHome = () => {
     setPage("home");
-    setGuest(false);
     setMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const immersiveChat = page === "chat" && !sessionLoading && (session || !SUPABASE_READY || guest);
+  const immersiveChat = page === "chat" && !sessionLoading && (session || !SUPABASE_READY);
 
   const goToChat = () => {
     setPage("chat");
@@ -2778,7 +2809,7 @@ function App() {
         ) : page === "admin" ? (
           <AdminGallery isAdmin={isAdmin} />
         ) : (
-          <ChatPage session={session} sessionLoading={sessionLoading} onSignOut={signOut} guest={guest} onGuest={() => setGuest(true)} onGoHome={goHome} />
+          <ChatPage session={session} sessionLoading={sessionLoading} onSignOut={signOut} onGuest={startGuest} guestLoading={guestLoading} guestError={guestError} onGoHome={goHome} />
         )}
 
         {!immersiveChat && (

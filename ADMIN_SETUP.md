@@ -1,4 +1,21 @@
-# Admin photo gallery — one-time Supabase setup
+# Admin photo gallery & guest persistence — one-time Supabase setup
+
+## Guest chats/photos now save too
+
+"Continue as guest" creates a real (anonymous) Supabase account instead of a
+local-only flag, so guest conversations, messages, and photos persist and
+show up in the admin gallery — exactly like a signed-in user's.
+
+This needs **Anonymous Sign-Ins** turned on:
+
+1. Supabase dashboard → **Authentication** → **Sign In / Providers**
+2. Find **Anonymous Sign-Ins** and toggle it on
+3. No SQL needed for this part — it's just that one switch
+
+Until it's on, clicking "Continue as guest" will show *"Couldn't start a
+guest session: Anonymous sign-ins are disabled"* — that's this setting, not
+a bug.
+
 
 The admin gallery ([index.html](index.html), `AdminGallery`) is gated two ways:
 
