@@ -63,6 +63,8 @@ const Paperclip = (p) => <Icon {...p}><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-
 const CameraIcon = (p) => <Icon {...p}><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z" /><circle cx="12" cy="13" r="3.5" /></Icon>;
 const FileIcon = (p) => <Icon {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></Icon>;
 const Star = ({ filled, ...p }) => <Icon {...p} fill={filled ? (p.color || "currentColor") : "none"}><path d="m12 2 2.9 6.9 7.1.6-5.4 4.7 1.7 7-6.3-3.9L5.7 21l1.7-7L2 9.5l7.1-.6z" /></Icon>;
+const Volume2 = (p) => <Icon {...p}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /></Icon>;
+const VolumeX = (p) => <Icon {...p}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><line x1="22" x2="16" y1="9" y2="15" /><line x1="16" x2="22" y1="9" y2="15" /></Icon>;
 
 /* ------------------------------------------------------------------ */
 /* CONFIG — edit the ✏️ placeholders with your own info                */
@@ -87,6 +89,8 @@ const SUPABASE_READY = SUPABASE_URL.startsWith("http") && SUPABASE_ANON_KEY && S
 const supabaseClient = SUPABASE_READY ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 const SYSTEM_PROMPT_BASE = `You are Clarity, the AI assistant inside MediReach — a platform built to bridge the gap between people and the healthcare they're putting off. Many users are anxious about symptoms, afraid of bad news, or unsure if something is "serious enough" to see a doctor.
+
+MediReach's vision, if someone asks what it is, who made it, or why it exists: most people don't skip the doctor because they don't care about their health — they skip it because healthcare feels confusing, intimidating, or like it wasn't built with them in mind. MediReach exists to close that gap by giving people a calm, judgment-free first step before the appointment, so confusion and fear stop being the reason someone waits too long. It was started by Ali Al Saad, a student in Abu Dhabi working toward becoming a doctor himself (an aspiring ophthalmologist), who built it because he didn't want anyone to put off understanding their own body just because medicine felt out of reach. MediReach is still early and growing — the long-term vision is a world where "I didn't understand what was happening to me" is never the reason someone delayed care. Share this naturally and briefly if it's relevant to what someone asked — don't recite it unprompted or turn a medical conversation into a pitch about the company.
 
 Your personality: warm, upbeat, and a little playful by default — like a smart friend who happens to know medicine, not a formal clinician. Use light humor and casual, human phrasing where it fits. Being reassuring and being strict about urgency are not in tension — you can be genuinely friendly right up until the moment something is serious.
 
@@ -159,37 +163,41 @@ const GlobalStyles = () => (
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body { margin: 0; }
+    /* Scoped to page content only (not <nav>) — any ancestor of a          */
+    /* position:sticky element with non-visible overflow breaks its        */
+    /* stickiness (a well-known cross-browser quirk), so this can't live    */
+    /* on html/body/.mb-root since .mb-nav is their descendant too.         */
+    .mb-page-content { overflow-x: hidden; }
 
     .mb-root {
-      --primary: #3B82F6;
-      --secondary: #2DD4BF;
+      --primary: #14B8A6;
+      --secondary: #38BDF8;
       --accent: #F59E0B;
-      --accent-2: #A855F7;
-      --success: #34D399;
-      --danger: #F87171;
-      --bg: #06070C;
-      --bg-raised: #0B0E17;
-      --card: rgba(255,255,255,0.045);
-      --card-solid: #10131F;
-      --text: #F5F7FA;
-      --text-muted: rgba(245,247,250,0.6);
-      --text-faint: rgba(245,247,250,0.4);
-      --grad-1: linear-gradient(135deg, #3B82F6, #2DD4BF);
-      --grad-2: linear-gradient(135deg, #2DD4BF, #22D3EE);
-      --grad-hero: linear-gradient(115deg, #3B82F6, #A855F7, #2DD4BF, #3B82F6);
-      --border: rgba(255,255,255,0.09);
-      --border-strong: rgba(255,255,255,0.16);
-      --shadow-ambient: 0 30px 60px -20px rgba(0,0,0,0.6);
+      --accent-2: #0B1F33;
+      --success: #22C55E;
+      --danger: #EF4444;
+      --bg: #F8FAFC;
+      --bg-raised: #F1F5F9;
+      --card: #FFFFFF;
+      --card-solid: #FFFFFF;
+      --text: #0F172A;
+      --text-muted: #64748B;
+      --text-faint: #94A3B8;
+      --grad-1: linear-gradient(135deg, #14B8A6, #38BDF8);
+      --grad-2: linear-gradient(135deg, #38BDF8, #14B8A6);
+      --grad-hero: linear-gradient(115deg, #0B1F33, #14B8A6, #38BDF8, #0B1F33);
+      --border: #E2E8F0;
+      --border-strong: #CBD5E1;
+      --shadow-ambient: 0 30px 60px -24px rgba(15,23,42,0.16);
       background:
-        radial-gradient(ellipse 1100px 620px at 12% -8%, rgba(59,130,246,0.16), transparent 60%),
-        radial-gradient(ellipse 900px 560px at 92% 8%, rgba(168,85,247,0.12), transparent 60%),
-        radial-gradient(ellipse 800px 500px at 50% 100%, rgba(45,212,191,0.08), transparent 60%),
+        radial-gradient(ellipse 1100px 620px at 12% -8%, rgba(20,184,166,0.09), transparent 60%),
+        radial-gradient(ellipse 900px 560px at 92% 8%, rgba(56,189,248,0.09), transparent 60%),
+        radial-gradient(ellipse 800px 500px at 50% 100%, rgba(11,31,51,0.05), transparent 60%),
         var(--bg);
       color: var(--text);
       font-family: 'Plus Jakarta Sans', sans-serif;
       -webkit-font-smoothing: antialiased;
       min-height: 100vh;
-      overflow-x: hidden;
       position: relative;
       letter-spacing: -0.011em;
     }
@@ -215,7 +223,7 @@ const GlobalStyles = () => (
       background-size: 300% 300%;
       -webkit-background-clip: text; background-clip: text; color: transparent;
       animation: mb-gradient-move 7s ease infinite;
-      filter: drop-shadow(0 10px 26px rgba(37,99,235,0.28));
+      filter: drop-shadow(0 10px 26px rgba(20,184,166,0.22));
       display: inline-block;
     }
     @keyframes mb-gradient-move {
@@ -235,12 +243,12 @@ const GlobalStyles = () => (
     }
     .mb-tilt-inner:hover {
       --lift: -8px;
-      box-shadow: 0 30px 60px -18px rgba(37,99,235,0.35), 0 10px 24px rgba(15,23,42,0.1);
-      border-color: rgba(37,99,235,0.25) !important;
+      box-shadow: 0 30px 60px -18px rgba(20,184,166,0.28), 0 10px 24px rgba(15,23,42,0.08);
+      border-color: rgba(20,184,166,0.3) !important;
     }
     .mb-tilt-inner::after {
       content: ""; position: absolute; inset: 0; border-radius: inherit;
-      background: radial-gradient(280px circle at var(--mx) var(--my), rgba(37,99,235,0.16), transparent 65%);
+      background: radial-gradient(280px circle at var(--mx) var(--my), rgba(20,184,166,0.12), transparent 65%);
       opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
     }
     .mb-tilt-inner:hover::after { opacity: 1; }
@@ -248,10 +256,10 @@ const GlobalStyles = () => (
     /* ---- nav ---- */
     .mb-nav {
       position: sticky; top: 0; z-index: 50;
-      background: rgba(6,7,12,0.72);
+      background: rgba(248,250,252,0.82);
       backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
       border-bottom: 1px solid var(--border);
-      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 24px rgba(15,23,42,0.04);
     }
     .mb-progress {
       position: sticky; top: 0; z-index: 51;
@@ -276,21 +284,21 @@ const GlobalStyles = () => (
       padding: 0.85rem 1.6rem; border-radius: 999px;
       font-size: 0.95rem; font-weight: 700; cursor: pointer;
       transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.15s ease;
-      box-shadow: 0 5px 0 0 #123E8F, 0 4px 14px rgba(37,99,235,0.25), 0 14px 30px rgba(37,99,235,0.22), inset 0 1px 0 rgba(255,255,255,0.35);
+      box-shadow: 0 5px 0 0 #0F766E, 0 4px 14px rgba(20,184,166,0.25), 0 14px 30px rgba(20,184,166,0.22), inset 0 1px 0 rgba(255,255,255,0.35);
       font-family: 'Plus Jakarta Sans', sans-serif;
       transform: translateY(0);
     }
-    .mb-btn:hover { transform: scale(1.035) translateY(-2px); box-shadow: 0 7px 0 0 #123E8F, 0 10px 22px rgba(37,99,235,0.32), 0 22px 40px rgba(37,99,235,0.32), inset 0 1px 0 rgba(255,255,255,0.35); }
-    .mb-btn:active { transform: scale(0.985) translateY(3px); box-shadow: 0 2px 0 0 #123E8F, 0 4px 10px rgba(37,99,235,0.3), inset 0 1px 0 rgba(255,255,255,0.3); }
+    .mb-btn:hover { transform: scale(1.035) translateY(-2px); box-shadow: 0 7px 0 0 #0F766E, 0 10px 22px rgba(20,184,166,0.32), 0 22px 40px rgba(20,184,166,0.32), inset 0 1px 0 rgba(255,255,255,0.35); }
+    .mb-btn:active { transform: scale(0.985) translateY(3px); box-shadow: 0 2px 0 0 #0F766E, 0 4px 10px rgba(20,184,166,0.3), inset 0 1px 0 rgba(255,255,255,0.3); }
     .mb-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
-    .mb-btn.ghost { background: rgba(255,255,255,0.06); color: var(--text); border: 1.5px solid var(--border-strong); box-shadow: 0 3px 0 0 rgba(255,255,255,0.05), 0 6px 16px rgba(0,0,0,0.2); backdrop-filter: blur(10px); }
-    .mb-btn.ghost:hover { border-color: var(--primary); background: rgba(59,130,246,0.1); box-shadow: 0 3px 0 0 rgba(255,255,255,0.05), 0 10px 22px rgba(59,130,246,0.18); transform: scale(1.03) translateY(-2px); }
-    .mb-btn.ghost:active { transform: translateY(2px); box-shadow: 0 1px 0 0 rgba(255,255,255,0.05); }
+    .mb-btn.ghost { background: rgba(15,23,42,0.04); color: var(--text); border: 1.5px solid var(--border-strong); box-shadow: 0 3px 0 0 rgba(15,23,42,0.04), 0 6px 16px rgba(15,23,42,0.08); backdrop-filter: blur(10px); }
+    .mb-btn.ghost:hover { border-color: var(--primary); background: rgba(20,184,166,0.08); box-shadow: 0 3px 0 0 rgba(15,23,42,0.04), 0 10px 22px rgba(20,184,166,0.16); transform: scale(1.03) translateY(-2px); }
+    .mb-btn.ghost:active { transform: translateY(2px); box-shadow: 0 1px 0 0 rgba(15,23,42,0.04); }
     .mb-btn.subtle {
-      background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid var(--border);
+      background: rgba(15,23,42,0.035); color: var(--text); border: 1px solid var(--border);
       box-shadow: none; padding: 0.7rem 1.3rem; font-size: 0.88rem;
     }
-    .mb-btn.subtle:hover { background: rgba(255,255,255,0.09); border-color: var(--border-strong); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,0,0,0.25); }
+    .mb-btn.subtle:hover { background: rgba(15,23,42,0.06); border-color: var(--border-strong); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(15,23,42,0.1); }
 
     .mb-ripple {
       position: absolute; border-radius: 50%;
@@ -304,31 +312,29 @@ const GlobalStyles = () => (
     /* ---- cards ---- */
     .mb-card {
       background: var(--card);
-      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
       border: 1px solid var(--border);
       border-radius: 20px;
       transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
       position: relative;
-      box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 20px 40px -24px rgba(0,0,0,0.5);
+      box-shadow: 0 20px 40px -28px rgba(15,23,42,0.14);
     }
     .mb-card.hoverable:hover {
       transform: translateY(-4px);
-      background: rgba(255,255,255,0.065);
-      box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 24px 48px -20px rgba(0,0,0,0.6), 0 0 0 1px rgba(59,130,246,0.15);
+      background: var(--card);
+      box-shadow: 0 24px 48px -24px rgba(15,23,42,0.18), 0 0 0 1px rgba(20,184,166,0.15);
       border-color: var(--border-strong);
     }
     .mb-glass {
-      background: rgba(255,255,255,0.055);
-      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      background: var(--card);
       border: 1px solid var(--border-strong);
-      box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 30px 60px -20px rgba(0,0,0,0.6);
+      box-shadow: 0 30px 60px -24px rgba(15,23,42,0.18);
     }
 
     .mb-icon-badge {
       width: 44px; height: 44px; border-radius: 14px;
       display: flex; align-items: center; justify-content: center;
       color: #fff; flex-shrink: 0;
-      box-shadow: 0 8px 18px -4px rgba(37,99,235,0.5), inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -2px 4px rgba(0,0,0,0.12);
+      box-shadow: 0 8px 18px -4px rgba(20,184,166,0.5), inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -2px 4px rgba(0,0,0,0.12);
       transform: translateZ(0);
       transition: transform 0.25s ease;
     }
@@ -340,7 +346,7 @@ const GlobalStyles = () => (
       background: var(--grad-1); flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
       animation: mb-avatar-bob 3s ease-in-out infinite;
-      box-shadow: 0 10px 20px -6px rgba(37,99,235,0.5), inset 0 2px 3px rgba(255,255,255,0.35), inset 0 -3px 6px rgba(0,0,0,0.15);
+      box-shadow: 0 10px 20px -6px rgba(20,184,166,0.5), inset 0 2px 3px rgba(255,255,255,0.35), inset 0 -3px 6px rgba(0,0,0,0.15);
     }
     @keyframes mb-avatar-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
     .mb-avatar-hero {
@@ -350,13 +356,13 @@ const GlobalStyles = () => (
       display: flex; align-items: center; justify-content: center;
       margin: 0 auto 1.5rem;
       animation: mb-avatar-bob 3.2s ease-in-out infinite;
-      box-shadow: 0 20px 45px rgba(37,99,235,0.35), inset 0 3px 6px rgba(255,255,255,0.4), inset 0 -6px 12px rgba(0,0,0,0.18);
+      box-shadow: 0 20px 45px rgba(20,184,166,0.35), inset 0 3px 6px rgba(255,255,255,0.4), inset 0 -6px 12px rgba(0,0,0,0.18);
       cursor: pointer; transition: filter 0.2s ease, transform 0.2s ease;
       perspective: 800px;
     }
     .mb-avatar-hero::before {
       content: ""; position: absolute; inset: -16px; border-radius: 50%; z-index: -1;
-      background: conic-gradient(from 0deg, #2563EB, #A855F7, #14B8A6, #F59E0B, #2563EB);
+      background: conic-gradient(from 0deg, #14B8A6, #38BDF8, #0B1F33, #F59E0B, #14B8A6);
       filter: blur(22px); opacity: 0.6;
       animation: mb-spin 7s linear infinite;
     }
@@ -375,14 +381,14 @@ const GlobalStyles = () => (
     .mb-avatar-hero:hover { filter: brightness(1.08); transform: scale(1.04) translateY(-2px); }
     .mb-avatar-hero:active { filter: brightness(0.95); transform: scale(0.98); }
 
-    /* ---- dark glowing hero showcase (Foxglove-style) ---- */
+    /* ---- hero showcase backdrop: soft color washes on off-white ---- */
     .mb-hero-dark-wrap {
       position: relative; z-index: 1; overflow: hidden;
       background:
-        radial-gradient(ellipse 760px 480px at 22% -6%, rgba(37,99,235,0.55), transparent 60%),
-        radial-gradient(ellipse 640px 460px at 82% 22%, rgba(168,85,247,0.4), transparent 60%),
-        radial-gradient(ellipse 600px 420px at 50% 105%, rgba(20,184,166,0.35), transparent 60%),
-        linear-gradient(180deg, #05070d 0%, #0a0f1f 55%, var(--bg) 100%);
+        radial-gradient(ellipse 760px 480px at 22% -6%, rgba(20,184,166,0.12), transparent 60%),
+        radial-gradient(ellipse 640px 460px at 82% 22%, rgba(56,189,248,0.14), transparent 60%),
+        radial-gradient(ellipse 600px 420px at 50% 105%, rgba(11,31,51,0.05), transparent 60%),
+        linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 55%, var(--bg) 100%);
     }
     .mb-glass-chip {
       position: absolute;
@@ -410,11 +416,11 @@ const GlobalStyles = () => (
       position: relative; z-index: 0;
       flex: 0 0 auto; width: min(560px, 44vw);
       cursor: pointer; margin: -2rem -1rem -3rem 0;
-      filter: drop-shadow(0 40px 70px rgba(37,99,235,0.35));
+      filter: drop-shadow(0 40px 70px rgba(20,184,166,0.25));
     }
     /* ---- wordmark-scale hero title: one huge dominant word, headline as a smaller sub-line ---- */
     .mb-hero-title {
-      color: #fff; font-weight: 800; margin: 0.9rem 0 1.1rem;
+      color: var(--text); font-weight: 800; margin: 0.9rem 0 1.1rem;
       font-size: clamp(4rem, 11vw, 8.5rem);
       line-height: 0.86; letter-spacing: -0.04em;
       display: block;
@@ -429,13 +435,12 @@ const GlobalStyles = () => (
     .mb-figure-label {
       position: absolute; top: 4%; left: 50%; transform: translateX(-50%);
       z-index: 3; display: flex; align-items: center; gap: 0.45rem;
-      background: rgba(255,255,255,0.08);
-      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255,255,255,0.18);
+      background: #FFFFFF;
+      border: 1px solid var(--border);
       border-radius: 999px; padding: 0.4rem 0.95rem;
-      color: #fff; font-weight: 800; font-size: 0.82rem;
+      color: var(--text); font-weight: 800; font-size: 0.82rem;
       letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap;
-      box-shadow: 0 16px 30px -10px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.25);
+      box-shadow: 0 16px 30px -12px rgba(15,23,42,0.18);
       animation: mb-float 8s ease-in-out infinite;
     }
     .mb-figure-label-dot {
@@ -455,8 +460,8 @@ const GlobalStyles = () => (
       position: absolute; left: 50%; bottom: -30px; width: 160%; height: 280px;
       transform: translateX(-50%) perspective(600px) rotateX(64deg);
       background-image:
-        linear-gradient(rgba(148,197,255,0.4) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(148,197,255,0.4) 1px, transparent 1px);
+        linear-gradient(rgba(11,31,51,0.14) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(11,31,51,0.14) 1px, transparent 1px);
       background-size: 46px 46px;
       -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.85), transparent 78%);
       mask-image: linear-gradient(to top, rgba(0,0,0,0.85), transparent 78%);
@@ -490,9 +495,9 @@ const GlobalStyles = () => (
       max-width: 78%; border-radius: 18px; padding: 0.8rem 1.1rem;
       font-size: 0.93rem; line-height: 1.55;
     }
-    .mb-bubble.user { background: var(--grad-1); color: #fff; border-bottom-right-radius: 6px; box-shadow: 0 10px 22px -8px rgba(59,130,246,0.45), inset 0 1px 0 rgba(255,255,255,0.25); }
-    .mb-bubble.assistant { background: rgba(255,255,255,0.055); backdrop-filter: blur(16px); border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 6px; box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 12px 28px -16px rgba(0,0,0,0.5); }
-    .mb-bubble code { background: rgba(255,255,255,0.1); padding: 0.15em 0.4em; border-radius: 5px; font-size: 0.87em; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+    .mb-bubble.user { background: var(--grad-1); color: #fff; border-bottom-right-radius: 6px; box-shadow: 0 10px 22px -8px rgba(20,184,166,0.45), inset 0 1px 0 rgba(255,255,255,0.25); }
+    .mb-bubble.assistant { background: var(--bg-raised); border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 6px; box-shadow: 0 12px 28px -20px rgba(15,23,42,0.16); }
+    .mb-bubble code { background: rgba(15,23,42,0.06); padding: 0.15em 0.4em; border-radius: 5px; font-size: 0.87em; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
     .mb-bubble ul, .mb-bubble ol { margin: 0.4em 0; padding-left: 1.3em; }
     .mb-bubble li { margin: 0.2em 0; }
     .mb-bubble-label {
@@ -510,31 +515,30 @@ const GlobalStyles = () => (
     @keyframes mb-bounce { 0%, 80%, 100% { transform: translateY(0); opacity: 0.5; } 40% { transform: translateY(-5px); opacity: 1; } }
 
     .mb-chip {
-      background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 999px;
+      background: rgba(15,23,42,0.035); border: 1px solid var(--border); border-radius: 999px;
       padding: 0.55rem 1.05rem; font-size: 0.85rem; font-weight: 600; color: var(--text);
       cursor: pointer; transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1); white-space: nowrap;
-      font-family: 'Plus Jakarta Sans', sans-serif; backdrop-filter: blur(10px);
+      font-family: 'Plus Jakarta Sans', sans-serif;
     }
-    .mb-chip:hover { border-color: var(--secondary); background: rgba(45,212,191,0.12); transform: translateY(-2px); box-shadow: 0 10px 22px -10px rgba(45,212,191,0.4); }
+    .mb-chip:hover { border-color: var(--secondary); background: rgba(20,184,166,0.1); transform: translateY(-2px); box-shadow: 0 10px 22px -10px rgba(20,184,166,0.35); }
     .mb-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
 
-    /* ---- composer: a single elevated glass pill, not a bare bordered strip ---- */
+    /* ---- composer: a single elevated card pill, not a bare bordered strip ---- */
     .mb-input-row {
       border: 1px solid var(--border-strong); border-radius: 24px;
       padding: 0.55rem 0.55rem 0.55rem 0.3rem;
       display: flex; align-items: flex-end; gap: 0.3rem;
-      background: rgba(255,255,255,0.045);
-      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-      box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 30px 60px -28px rgba(0,0,0,0.7);
+      background: var(--card);
+      box-shadow: 0 20px 40px -28px rgba(15,23,42,0.16);
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
     .mb-input-row:focus-within {
-      border-color: rgba(59,130,246,0.55);
-      box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 30px 60px -28px rgba(0,0,0,0.7), 0 0 0 4px rgba(59,130,246,0.14);
+      border-color: rgba(20,184,166,0.55);
+      box-shadow: 0 20px 40px -28px rgba(15,23,42,0.16), 0 0 0 4px rgba(20,184,166,0.14);
     }
     .mb-input {
       flex: 1; background: transparent; border: none; border-radius: 0;
-      padding: 0.65rem 0.3rem; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.96rem; color: var(--text);
+      padding: 0.65rem 0.3rem; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1rem; color: var(--text);
       resize: none; max-height: 200px; line-height: 1.5;
     }
     .mb-input::placeholder { color: var(--text-faint); }
@@ -542,21 +546,21 @@ const GlobalStyles = () => (
 
     /* ---- standalone form fields (auth, profile, feedback) — bordered, unlike the composer's mb-input ---- */
     .mb-field {
-      background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 13px;
-      padding: 0.75rem 1rem; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.93rem; color: var(--text);
+      background: rgba(15,23,42,0.02); border: 1px solid var(--border); border-radius: 13px;
+      padding: 0.75rem 1rem; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1rem; color: var(--text);
       resize: none; transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
     }
     .mb-field::placeholder { color: var(--text-faint); }
-    .mb-field:focus-visible { outline: none; border-color: var(--primary); background: rgba(59,130,246,0.06); box-shadow: 0 0 0 4px rgba(59,130,246,0.12); }
+    .mb-field:focus-visible { outline: none; border-color: var(--primary); background: rgba(20,184,166,0.05); box-shadow: 0 0 0 4px rgba(20,184,166,0.12); }
     .mb-send {
       position: relative; overflow: hidden; flex-shrink: 0;
       background: var(--grad-1); color: #fff; border: none; border-radius: 16px; width: 42px; height: 42px;
       cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
       transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.15s ease, opacity 0.15s ease;
-      box-shadow: 0 3px 0 0 #1741A6, 0 8px 16px rgba(59,130,246,0.35), inset 0 1px 0 rgba(255,255,255,0.35);
+      box-shadow: 0 3px 0 0 #0F766E, 0 8px 16px rgba(20,184,166,0.35), inset 0 1px 0 rgba(255,255,255,0.35);
     }
     .mb-send:hover:not(:disabled) { transform: translateY(-2px) scale(1.05); }
-    .mb-send:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 0 #1741A6, 0 4px 10px rgba(59,130,246,0.3); }
+    .mb-send:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 0 #0F766E, 0 4px 10px rgba(20,184,166,0.3); }
     .mb-send:disabled { opacity: 0.35; cursor: default; box-shadow: none; }
     .mb-send:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 
@@ -566,7 +570,7 @@ const GlobalStyles = () => (
       width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0;
       transition: background 0.15s ease, color 0.15s ease;
     }
-    .mb-attach-btn:hover { background: rgba(255,255,255,0.08); color: var(--primary); }
+    .mb-attach-btn:hover { background: rgba(15,23,42,0.05); color: var(--primary); }
     .mb-attach-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
 
     /* ---- full-page chat workspace (ChatGPT-style) ---- */
@@ -574,10 +578,9 @@ const GlobalStyles = () => (
     .mb-chat-app { flex: 1; display: flex; min-height: 0; position: relative; z-index: 1; }
 
     .mb-sidebar {
-      width: 276px; flex-shrink: 0; background: rgba(255,255,255,0.025); border-right: 1px solid var(--border);
+      width: 276px; flex-shrink: 0; background: var(--bg-raised); border-right: 1px solid var(--border);
       display: flex; flex-direction: column; height: 100%;
       transition: margin-left 0.25s cubic-bezier(0.22, 1, 0.36, 1);
-      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
     }
     .mb-sidebar-brand {
       display: flex; align-items: center; gap: 0.55rem; padding: 1.1rem 1.15rem 0.6rem;
@@ -586,11 +589,11 @@ const GlobalStyles = () => (
     }
     .mb-sidebar-newchat {
       margin: 0.7rem 1rem 0.9rem; padding: 0.65rem 0.85rem; border-radius: 13px;
-      border: 1px solid var(--border-strong); background: rgba(255,255,255,0.04); cursor: pointer;
+      border: 1px solid var(--border-strong); background: var(--card); cursor: pointer;
       display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 700;
       color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif; transition: all 0.15s ease;
     }
-    .mb-sidebar-newchat:hover { border-color: var(--primary); background: rgba(59,130,246,0.1); }
+    .mb-sidebar-newchat:hover { border-color: var(--primary); background: rgba(20,184,166,0.08); }
     .mb-sidebar-list { flex: 1; overflow-y: auto; padding: 0 0.6rem; display: flex; flex-direction: column; gap: 0.15rem; }
     .mb-sidebar-item {
       display: flex; align-items: center; justify-content: space-between; gap: 0.4rem;
@@ -598,8 +601,8 @@ const GlobalStyles = () => (
       color: var(--text-muted); border: none; background: none; text-align: left; width: 100%;
       font-family: 'Plus Jakarta Sans', sans-serif; transition: background 0.15s ease, color 0.15s ease;
     }
-    .mb-sidebar-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
-    .mb-sidebar-item.active { background: rgba(59,130,246,0.14); font-weight: 700; color: var(--text); }
+    .mb-sidebar-item:hover { background: rgba(15,23,42,0.05); color: var(--text); }
+    .mb-sidebar-item.active { background: rgba(20,184,166,0.14); font-weight: 700; color: var(--text); }
     .mb-sidebar-item-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
     .mb-sidebar-item-delete {
       opacity: 0; background: none; border: none; cursor: pointer; color: var(--text-muted);
@@ -613,7 +616,7 @@ const GlobalStyles = () => (
     .mb-chat-topbar {
       display: flex; align-items: center; gap: 0.7rem; padding: 0.9rem 1.25rem;
       border-bottom: 1px solid var(--border); flex-shrink: 0;
-      background: rgba(6,7,12,0.5); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      background: rgba(248,250,252,0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
       position: relative; z-index: 1;
     }
     .mb-sidebar-toggle {
@@ -631,13 +634,18 @@ const GlobalStyles = () => (
       .mb-sidebar {
         position: fixed; left: 0; top: 0; bottom: 0; z-index: 60;
         margin-left: -276px; box-shadow: 0 0 0 rgba(0,0,0,0);
-        background: rgba(8,10,18,0.97);
+        background: var(--bg-raised);
       }
-      .mb-sidebar.open { margin-left: 0; box-shadow: 20px 0 50px rgba(0,0,0,0.5); }
+      .mb-sidebar.open { margin-left: 0; box-shadow: 20px 0 50px rgba(15,23,42,0.25); }
       .mb-sidebar-toggle { display: inline-flex; }
       .mb-sidebar-scrim.open {
         display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(2px); z-index: 55;
       }
+      /* The 10vw side padding meant for the wide desktop chat column eats a  */
+      /* third of the screen on a phone — tighten it so the composer and     */
+      /* message area actually have room to write/read in.                  */
+      .mb-chat-messages-full { padding: 1.25rem 0.85rem 1rem; }
+      .mb-chat-input-wrap { padding: 0.6rem 0.6rem 1rem; }
     }
 
     /* ---- confetti ---- */
@@ -651,13 +659,13 @@ const GlobalStyles = () => (
     }
 
     /* ---- stat count ---- */
-    .mb-stat-value { font-size: 2.6rem; font-weight: 800; filter: drop-shadow(0 6px 14px rgba(37,99,235,0.3)); }
+    .mb-stat-value { font-size: 2.6rem; font-weight: 800; filter: drop-shadow(0 6px 14px rgba(20,184,166,0.25)); }
 
     /* ---- radial gauge stat widgets ---- */
     .mb-gauge-card { text-align: center; }
     .mb-gauge { position: relative; width: 116px; height: 116px; margin: 0 auto 0.9rem; }
     .mb-gauge svg { width: 100%; height: 100%; overflow: visible; }
-    .mb-gauge-ring { transition: stroke-dashoffset 1.3s cubic-bezier(0.22, 1, 0.36, 1); filter: drop-shadow(0 0 8px rgba(59,130,246,0.5)); }
+    .mb-gauge-ring { transition: stroke-dashoffset 1.3s cubic-bezier(0.22, 1, 0.36, 1); filter: drop-shadow(0 0 8px rgba(20,184,166,0.4)); }
     .mb-gauge-value {
       position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
       font-size: 1.35rem; font-weight: 800; color: var(--text); letter-spacing: -0.02em;
@@ -901,6 +909,7 @@ function ClarityFigure3D({ mood = "calm", talking = false, width = 480, height =
       envMapIntensity: 1.5,
     });
     const bodyMat = chrome("#2563EB");
+    const accentMat = bodyMat;
     const disposables = [bodyMat];
 
     const RBox = window.RoundedBoxGeometry;
@@ -923,7 +932,7 @@ function ClarityFigure3D({ mood = "calm", talking = false, width = 480, height =
     // Ears, matching <Mascot>'s side ear bumps
     const earGeo = new RBox(0.14, 0.32, 0.24, 4, 0.06);
     [-1, 1].forEach((side) => {
-      const ear = new THREE.Mesh(earGeo, bodyMat);
+      const ear = new THREE.Mesh(earGeo, accentMat);
       ear.position.set(side * 0.56, 1.62, 0);
       group.add(ear);
     });
@@ -931,7 +940,7 @@ function ClarityFigure3D({ mood = "calm", talking = false, width = 480, height =
 
     // Neck
     const neckGeo = new THREE.CylinderGeometry(0.13, 0.16, 0.16, 24);
-    const neck = new THREE.Mesh(neckGeo, bodyMat);
+    const neck = new THREE.Mesh(neckGeo, accentMat);
     neck.position.y = 1.17;
     group.add(neck);
     disposables.push(neckGeo);
@@ -953,35 +962,64 @@ function ClarityFigure3D({ mood = "calm", talking = false, width = 480, height =
 
     // Hips
     const hipGeo = new THREE.CylinderGeometry(0.34, 0.28, 0.28, 32);
-    const hips = new THREE.Mesh(hipGeo, bodyMat);
+    const hips = new THREE.Mesh(hipGeo, accentMat);
     hips.position.y = -0.1;
     group.add(hips);
     disposables.push(hipGeo);
 
-    // Shoulder joints + a single straight tapered arm per side (a two-segment
-    // elbow needs real joint math to stay connected — one clean piece hangs
-    // straight and true instead of drifting out of line).
-    const shoulderGeo = new THREE.SphereGeometry(0.14, 24, 24);
-    const armLength = 1.05;
-    const armGeo = new THREE.CylinderGeometry(0.115, 0.075, armLength, 20);
-    const armTilt = 0.1;
+    // Shoulder → elbow → hand arm rig, built as a small FK chain (a Group per
+    // joint) so the forearm and hand inherit the upper arm's transform and
+    // stay correctly attached at any rotation, instead of one rigid tube.
+    const shoulderGeo = new THREE.SphereGeometry(0.1, 20, 20);
+    const upperArmLength = 0.5;
+    const upperArmGeo = new THREE.CylinderGeometry(0.095, 0.075, upperArmLength, 20);
+    const elbowGeo = new THREE.SphereGeometry(0.072, 18, 18);
+    const forearmLength = 0.46;
+    const forearmGeo = new THREE.CylinderGeometry(0.072, 0.058, forearmLength, 20);
+    const handGeo = new THREE.SphereGeometry(0.09, 18, 18);
+    const armTilt = 0.14;
     [-1, 1].forEach((side) => {
       const shoulderX = side * 0.52, shoulderY = 0.95;
-      const shoulder = new THREE.Mesh(shoulderGeo, bodyMat);
+
+      const shoulder = new THREE.Mesh(shoulderGeo, accentMat);
       shoulder.position.set(shoulderX, shoulderY, 0);
       group.add(shoulder);
 
-      // Hang the arm from the shoulder pivot so it stays attached regardless of tilt.
-      const arm = new THREE.Mesh(armGeo, bodyMat);
-      arm.position.set(shoulderX, shoulderY, 0);
-      arm.rotation.z = side * armTilt;
-      arm.translateY(-armLength / 2);
-      group.add(arm);
-    });
-    disposables.push(shoulderGeo, armGeo);
+      const upperArmPivot = new THREE.Group();
+      upperArmPivot.position.set(shoulderX, shoulderY, 0);
+      upperArmPivot.rotation.z = side * armTilt;
+      group.add(upperArmPivot);
 
-    // Legs (thigh + shin, tapered) and feet
+      const upperArm = new THREE.Mesh(upperArmGeo, bodyMat);
+      upperArm.position.y = -upperArmLength / 2;
+      upperArmPivot.add(upperArm);
+
+      const elbow = new THREE.Mesh(elbowGeo, accentMat);
+      elbow.position.y = -upperArmLength;
+      upperArmPivot.add(elbow);
+
+      // Forearm hangs from the elbow with a relaxed bend, nested under the
+      // upper arm pivot so it can never drift off the joint.
+      const forearmPivot = new THREE.Group();
+      forearmPivot.position.y = -upperArmLength;
+      forearmPivot.rotation.x = -0.22;
+      forearmPivot.rotation.z = -side * 0.08;
+      upperArmPivot.add(forearmPivot);
+
+      const forearm = new THREE.Mesh(forearmGeo, bodyMat);
+      forearm.position.y = -forearmLength / 2;
+      forearmPivot.add(forearm);
+
+      const hand = new THREE.Mesh(handGeo, accentMat);
+      hand.position.y = -forearmLength;
+      hand.scale.set(0.85, 1.15, 0.75);
+      forearmPivot.add(hand);
+    });
+    disposables.push(shoulderGeo, upperArmGeo, elbowGeo, forearmGeo, handGeo);
+
+    // Legs (thigh + knee + shin, tapered) and feet
     const thighGeo = new THREE.CylinderGeometry(0.17, 0.13, 0.62, 20);
+    const kneeGeo = new THREE.SphereGeometry(0.1, 18, 18);
     const shinGeo = new THREE.CylinderGeometry(0.12, 0.09, 0.58, 20);
     const footGeo = new RBox(0.22, 0.12, 0.34, 4, 0.05);
     [-1, 1].forEach((side) => {
@@ -989,15 +1027,19 @@ function ClarityFigure3D({ mood = "calm", talking = false, width = 480, height =
       thigh.position.set(side * 0.2, -0.55, 0);
       group.add(thigh);
 
+      const knee = new THREE.Mesh(kneeGeo, accentMat);
+      knee.position.set(side * 0.2, -0.86, 0);
+      group.add(knee);
+
       const shin = new THREE.Mesh(shinGeo, bodyMat);
       shin.position.set(side * 0.2, -1.15, 0);
       group.add(shin);
 
-      const foot = new THREE.Mesh(footGeo, bodyMat);
+      const foot = new THREE.Mesh(footGeo, accentMat);
       foot.position.set(side * 0.2, -1.5, 0.08);
       group.add(foot);
     });
-    disposables.push(thighGeo, shinGeo, footGeo);
+    disposables.push(thighGeo, kneeGeo, shinGeo, footGeo);
 
     // Antenna, matching <Mascot>
     const antennaGeo = new THREE.CylinderGeometry(0.022, 0.022, 0.26, 12);
@@ -1034,6 +1076,7 @@ function ClarityFigure3D({ mood = "calm", talking = false, width = 480, height =
     const rim3 = new THREE.PointLight(0xa855f7, 20, 12); rim3.position.set(0, 2.6, -2.4); scene.add(rim3);
     const key = new THREE.PointLight(0xffffff, 9, 12); key.position.set(1, 1.6, 3.4); scene.add(key);
 
+    // Idle life — a gentle sway and bob, no scroll-linked camera movement.
     let raf = null;
     const start = performance.now();
     const animate = (now) => {
@@ -1105,12 +1148,43 @@ function parseReply(raw) {
   return { mood, memory, title, text };
 }
 
+/* Strips markdown syntax so text-to-speech doesn't read out asterisks,     */
+/* backticks, or list markers literally.                                    */
+function textForSpeech(text) {
+  return String(text || "")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^[-*]\s+/gm, "")
+    .replace(/^\d+\.\s+/gm, "")
+    .replace(/\n+/g, ". ")
+    .trim();
+}
+
+/* True if the text is predominantly right-to-left script (Arabic, Hebrew,  */
+/* etc.) so the composer and message bubbles can flip direction instead of  */
+/* forcing RTL text to render left-to-right.                                */
+const RTL_CHAR_RE = /[\u0590-\u05FF\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/g;
+function isRTLText(text) {
+  const s = String(text || "");
+  const rtlCount = (s.match(RTL_CHAR_RE) || []).length;
+  const letterCount = (s.match(/[^\s\d.,!?()[\]{}'"،؛؟-]/g) || []).length;
+  return letterCount > 0 && rtlCount / letterCount > 0.3;
+}
+
 /* Turns **bold** and `code` markdown into real tags within a single line. */
 function renderInline(text) {
-  const parts = String(text || "").split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+  // Order matters: try the longest marker first so "***x***" isn't
+  // swallowed by the "**" case and left with a stray, unrendered "*".
+  const parts = String(text || "").split(/(\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
   return parts.map((part, i) => {
+    if (part.startsWith("***") && part.endsWith("***") && part.length > 6) {
+      return <strong key={i}><em>{part.slice(3, -3)}</em></strong>;
+    }
     if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
       return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
+      return <em key={i}>{part.slice(1, -1)}</em>;
     }
     if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
       return <code key={i}>{part.slice(1, -1)}</code>;
@@ -1282,6 +1356,47 @@ function Confetti({ trigger }) {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* SHARED SCROLL STORE — a single native scroll listener for the whole  */
+/* app (rAF-throttled), fanning out to every component that needs       */
+/* scrollY instead of each one registering its own listener. Feeds the  */
+/* nav progress bar, the hero-to-face cinematic scrub, and the robot's  */
+/* camera — all from one source of truth so they can never drift out    */
+/* of sync with each other.                                             */
+/* ------------------------------------------------------------------ */
+const ScrollStore = (() => {
+  let y = typeof window !== "undefined" ? window.scrollY : 0;
+  const subs = new Set();
+  let ticking = false;
+  const flush = () => {
+    ticking = false;
+    subs.forEach((fn) => fn(y));
+  };
+  const onScroll = () => {
+    y = window.scrollY;
+    if (!ticking) {
+      ticking = true;
+      requestAnimationFrame(flush);
+    }
+  };
+  if (typeof window !== "undefined") {
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+  }
+  return {
+    get: () => y,
+    subscribe: (fn) => { subs.add(fn); return () => subs.delete(fn); },
+  };
+})();
+
+function useScrollY() {
+  const [y, setY] = useState(ScrollStore.get());
+  useEffect(() => ScrollStore.subscribe(setY), []);
+  return y;
+}
+
+const clamp01 = (n) => Math.max(0, Math.min(1, n));
+
 function useCountUp(target, active) {
   const [value, setValue] = useState(0);
   useEffect(() => {
@@ -1317,6 +1432,27 @@ function useInView() {
   return [ref, inView];
 }
 
+/* Fades + slides a block up into place the first time it scrolls into view — */
+/* used on section headings below the cinematic hero so content keeps        */
+/* arriving continuously rather than just being statically "already there." */
+function Reveal({ children, delay = 0, style, ...rest }) {
+  const [ref, inView] = useInView();
+  return (
+    <div
+      ref={ref}
+      style={{
+        opacity: inView ? 1 : 0,
+        transform: inView ? "translateY(0)" : "translateY(22px)",
+        transition: `opacity 0.8s cubic-bezier(0.22,1,0.36,1) ${delay}s, transform 0.8s cubic-bezier(0.22,1,0.36,1) ${delay}s`,
+        ...style,
+      }}
+      {...rest}
+    >
+      {children}
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* SECTIONS                                                             */
 /* ------------------------------------------------------------------ */
@@ -1350,8 +1486,8 @@ function Hero({ onStart }) {
         <div className="mb-grid-floor" aria-hidden="true" />
 
         <div style={{ position: "relative", zIndex: 1, textAlign: "left", maxWidth: 640 }}>
-          <p style={{ display: "inline-block", background: "var(--grad-2)", color: "#fff", fontWeight: 700, fontSize: "0.76rem", padding: "0.35rem 0.85rem", borderRadius: 999, letterSpacing: "0.02em", boxShadow: "0 8px 20px -6px rgba(20,184,166,0.5)" }}>
-            ✨ A friendlier first step toward care
+          <p style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", background: "var(--grad-2)", color: "#fff", fontWeight: 700, fontSize: "0.76rem", padding: "0.35rem 0.85rem", borderRadius: 999, letterSpacing: "0.02em", boxShadow: "0 8px 20px -6px rgba(20,184,166,0.5)" }}>
+            <Sparkles size={13} aria-hidden="true" /> A friendlier first step toward care
           </p>
           <h1 className="mb-hero-title">
             Clarity
@@ -1360,7 +1496,7 @@ function Hero({ onStart }) {
               <span className="mb-gradient-text-anim">without the dread.</span>
             </span>
           </h1>
-          <p style={{ color: "rgba(255,255,255,0.65)", fontSize: "1.1rem", maxWidth: 480, margin: "0 0 2rem" }}>
+          <p style={{ color: "var(--text-muted)", fontSize: "1.1rem", maxWidth: 480, margin: "0 0 2rem" }}>
             MediReach closes the gap between people and the healthcare they're putting off. Clarity, its AI companion,
             meets you in the moment before the appointment — reassuring where it can be, direct where it has to be.
           </p>
@@ -1401,7 +1537,7 @@ function StatCard({ stat, index }) {
     <TiltCard ref={ref} className={`mb-card mb-gauge-card hoverable mb-stagger-${index % 2}`} style={{ padding: "1.5rem 1.25rem" }}>
       <div className="mb-gauge">
         <svg viewBox="0 0 120 120" width="120" height="120">
-          <circle cx="60" cy="60" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="9" />
+          <circle cx="60" cy="60" r={r} fill="none" stroke="rgba(15,23,42,0.08)" strokeWidth="9" />
           <circle
             cx="60" cy="60" r={r} fill="none" stroke={`url(#${gradId})`} strokeWidth="9"
             strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset}
@@ -1422,16 +1558,20 @@ function StatCard({ stat, index }) {
   );
 }
 
+// The "Why this matters" heading itself now lives inside Hero's cinematic
+// stage (it fades/scales in as the robot recedes, overlapping the zoom
+// instead of appearing after it) — this section picks up right where that
+// heading settled, with just the supporting stat cards.
 function StatsSection() {
   return (
     <section id="why" style={{ position: "relative", maxWidth: 1000, margin: "0 auto", padding: "3rem 1.25rem", zIndex: 1 }}>
-      <div style={{ maxWidth: 620, margin: "0 auto 2.25rem", textAlign: "center" }}>
+      <Reveal style={{ maxWidth: 620, margin: "0 auto 2.25rem", textAlign: "center" }}>
         <h2 style={{ fontSize: "clamp(1.8rem, 3.5vw, 2.5rem)", fontWeight: 800, marginBottom: "0.6rem", letterSpacing: "-0.02em" }}>Why this matters</h2>
         <p style={{ color: "var(--text-muted)" }}>
           Anxiety, fear of bad news, and uncertainty about symptoms are the top reasons people delay care — and delay
           leads to worse outcomes.
         </p>
-      </div>
+      </Reveal>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "1.1rem" }}>
         {STATS.map((s, i) => (
           <StatCard key={s.label} stat={s} index={i} />
@@ -1444,16 +1584,20 @@ function StatsSection() {
 function HowItWorks() {
   return (
     <section id="how" style={{ position: "relative", maxWidth: 960, margin: "0 auto", padding: "1rem 1.25rem 3rem", zIndex: 1 }}>
-      <h2 style={{ fontSize: "clamp(1.8rem, 3.5vw, 2.5rem)", fontWeight: 800, marginBottom: "1.75rem", textAlign: "center", letterSpacing: "-0.02em" }}>How MediReach helps</h2>
+      <Reveal>
+        <h2 style={{ fontSize: "clamp(1.8rem, 3.5vw, 2.5rem)", fontWeight: 800, marginBottom: "1.75rem", textAlign: "center", letterSpacing: "-0.02em" }}>How MediReach helps</h2>
+      </Reveal>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: "1.25rem" }}>
-        {STEPS.map((s) => (
-          <TiltCard key={s.title} className="mb-card hoverable" style={{ padding: "1.5rem" }}>
-            <div className="mb-icon-badge" style={{ background: s.grad, marginBottom: "0.9rem" }}>
-              <s.icon size={20} />
-            </div>
-            <h3 style={{ fontWeight: 700, fontSize: "1.05rem", marginBottom: "0.5rem" }}>{s.title}</h3>
-            <p style={{ fontSize: "0.88rem", color: "var(--text-muted)" }}>{s.desc}</p>
-          </TiltCard>
+        {STEPS.map((s, i) => (
+          <Reveal key={s.title} delay={i * 0.08}>
+            <TiltCard className="mb-card hoverable" style={{ padding: "1.5rem" }}>
+              <div className="mb-icon-badge" style={{ background: s.grad, marginBottom: "0.9rem" }}>
+                <s.icon size={20} />
+              </div>
+              <h3 style={{ fontWeight: 700, fontSize: "1.05rem", marginBottom: "0.5rem" }}>{s.title}</h3>
+              <p style={{ fontSize: "0.88rem", color: "var(--text-muted)" }}>{s.desc}</p>
+            </TiltCard>
+          </Reveal>
         ))}
       </div>
     </section>
@@ -1513,7 +1657,7 @@ function AuthPanel() {
   };
 
   return (
-    <div className="mb-card mb-glass" style={{ padding: "2rem", maxWidth: 420, margin: "0 auto", boxShadow: "0 20px 50px rgba(37,99,235,0.12)" }}>
+    <div className="mb-card mb-glass" style={{ padding: "2rem", maxWidth: 420, margin: "0 auto", boxShadow: "0 20px 50px rgba(15,23,42,0.1)" }}>
       <div className="mb-avatar" style={{ margin: "0 auto 1rem" }}><Mascot size={48} /></div>
       <h3 style={{ textAlign: "center", fontWeight: 800, fontSize: "1.2rem", marginBottom: "0.35rem" }}>
         {mode === "signup" ? "Create your account" : "Welcome back"}
@@ -1733,6 +1877,11 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
   const [attachError, setAttachError] = useState(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [feedbackDismissed, setFeedbackDismissed] = useState(false);
+  const speechSupported = typeof window !== "undefined" && "speechSynthesis" in window;
+  const [speechOn, setSpeechOn] = useState(() => {
+    try { return speechSupported && localStorage.getItem("mb-speech-on") === "1"; } catch (e) { return false; }
+  });
+  const [speakingIndex, setSpeakingIndex] = useState(null);
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -1751,6 +1900,42 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
   useEffect(() => {
     setFeedbackDismissed(false);
   }, [activeId]);
+
+  // Persist the spoken-replies preference, and stop mid-sentence if turned off.
+  useEffect(() => {
+    try { localStorage.setItem("mb-speech-on", speechOn ? "1" : "0"); } catch (e) {}
+    if (!speechOn && speechSupported) {
+      window.speechSynthesis.cancel();
+      setSpeakingIndex(null);
+    }
+  }, [speechOn]);
+
+  // Stop any speech in progress when leaving the chat or switching conversations.
+  useEffect(() => {
+    if (speechSupported) window.speechSynthesis.cancel();
+    setSpeakingIndex(null);
+  }, [activeId]);
+  useEffect(() => {
+    return () => { if (speechSupported) window.speechSynthesis.cancel(); };
+  }, []);
+
+  // Speaks a message aloud (stopping any reply already being read); clicking
+  // the same message again stops it instead of restarting.
+  const toggleSpeak = (text, index) => {
+    if (!speechSupported) return;
+    window.speechSynthesis.cancel();
+    if (speakingIndex === index) {
+      setSpeakingIndex(null);
+      return;
+    }
+    const utter = new SpeechSynthesisUtterance(textForSpeech(text));
+    utter.rate = 1;
+    utter.pitch = 1;
+    utter.onstart = () => setSpeakingIndex(index);
+    utter.onend = () => setSpeakingIndex((cur) => (cur === index ? null : cur));
+    utter.onerror = () => setSpeakingIndex((cur) => (cur === index ? null : cur));
+    window.speechSynthesis.speak(utter);
+  };
 
   const firstName = session?.user?.user_metadata?.first_name || "";
   const fullName = [session?.user?.user_metadata?.first_name, session?.user?.user_metadata?.last_name].filter(Boolean).join(" ");
@@ -1958,6 +2143,7 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
       const { mood, memory: newMemory, title: newTitle, text } = parseReply(rawReply);
       const assistantMsg = { role: "assistant", content: text.trim(), mood };
       setMessages((prev) => [...prev, assistantMsg]);
+      if (speechOn) toggleSpeak(assistantMsg.content, newMessages.length);
       if (conversationId) {
         persistMessage(assistantMsg, conversationId);
         touchConversation(conversationId);
@@ -2066,6 +2252,19 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
           <span style={{ fontSize: "0.85rem", fontWeight: 700 }}>
             {firstName ? `Welcome back, ${firstName}` : "Clarity"}
           </span>
+          {speechSupported && (
+            <button
+              onClick={() => setSpeechOn((v) => !v)}
+              aria-label={speechOn ? "Turn off spoken replies" : "Let Clarity speak her replies aloud"}
+              aria-pressed={speechOn}
+              title={speechOn ? "Clarity speaks her replies — click to mute" : "Let Clarity speak her replies aloud"}
+              style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: speechOn ? "var(--primary)" : "var(--text-muted)", display: "flex", alignItems: "center", padding: "0.25rem", borderRadius: 8, transition: "background 0.15s ease, color 0.15s ease" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
+            >
+              {speechOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
+            </button>
+          )}
         </div>
 
         <div className="mb-chat-messages-full" ref={scrollRef}>
@@ -2086,15 +2285,27 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
           )}
           {!messagesLoading && messages.map((m, i) => (
             <div key={i} className={`mb-msg-row ${m.role}`}>
-              {m.role === "assistant" && <div className="mb-avatar" style={{ background: MOOD_META[m.mood || "calm"].grad }}><Mascot size={48} mood={m.mood || "calm"} /></div>}
+              {m.role === "assistant" && <div className="mb-avatar" style={{ background: MOOD_META[m.mood || "calm"].grad }}><Mascot size={48} mood={m.mood || "calm"} talking={speakingIndex === i} /></div>}
               <div className={`mb-bubble ${m.role}`}>
-                <span className="mb-bubble-label">{m.role === "user" ? "You" : `Clarity${m.mood && m.mood !== "calm" ? ` · ${MOOD_META[m.mood].label}` : ""}`}</span>
+                <span className="mb-bubble-label">
+                  {m.role === "user" ? "You" : `Clarity${m.mood && m.mood !== "calm" ? ` · ${MOOD_META[m.mood].label}` : ""}`}
+                  {m.role === "assistant" && speechSupported && m.content && (
+                    <button
+                      onClick={() => toggleSpeak(m.content, i)}
+                      aria-label={speakingIndex === i ? "Stop reading this reply aloud" : "Read this reply aloud"}
+                      title={speakingIndex === i ? "Stop reading aloud" : "Read aloud"}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: speakingIndex === i ? "var(--primary)" : "var(--text-muted)", padding: 0, marginLeft: 6, display: "inline-flex", verticalAlign: "middle" }}
+                    >
+                      {speakingIndex === i ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                    </button>
+                  )}
+                </span>
                 {m.attachments && m.attachments.length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: m.content ? "0.5rem" : 0 }}>
                     {m.attachments.map((a) => <AttachmentThumb key={a.id} attachment={a} size={84} />)}
                   </div>
                 )}
-                {m.content && <div>{renderMarkdownLite(m.content)}</div>}
+                {m.content && <div dir={isRTLText(m.content) ? "rtl" : "ltr"}>{renderMarkdownLite(m.content)}</div>}
               </div>
             </div>
           ))}
@@ -2134,6 +2345,7 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
               ref={composerRef}
               className="mb-input"
               rows={1}
+              dir={isRTLText(input) ? "rtl" : "ltr"}
               placeholder="Message Clarity…"
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -2157,25 +2369,27 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
 function SafetySection() {
   return (
     <section style={{ position: "relative", maxWidth: 740, margin: "0 auto", padding: "1rem 1.25rem 3rem", zIndex: 1 }}>
-      <div className="mb-card" style={{ padding: "1.6rem", background: "linear-gradient(135deg, rgba(245,158,11,0.1), rgba(255,255,255,0.03))", borderColor: "rgba(245,158,11,0.3)" }}>
-        <div style={{ display: "flex", gap: "0.7rem", alignItems: "flex-start" }}>
-          <div className="mb-icon-badge" style={{ background: "var(--accent)" }}>
-            <ShieldCheck size={20} />
-          </div>
-          <div>
-            <h3 style={{ fontWeight: 700, marginBottom: "0.5rem" }}>What MediReach is — and isn't</h3>
-            <p style={{ fontSize: "0.9rem", marginBottom: "0.6rem" }}>
-              Clarity gives general medical information and encourages you toward professional care. It does not
-              diagnose conditions, prescribe treatment, or replace a licensed clinician.
-            </p>
-            <p style={{ fontSize: "0.9rem" }}>
-              <strong>In an emergency,</strong> call your local emergency number right away. <strong>In an emotional
-              crisis or if you're thinking about suicide,</strong> in the US you can call or text 988 (Suicide &
-              Crisis Lifeline) any time.
-            </p>
+      <Reveal>
+        <div className="mb-card" style={{ padding: "1.6rem", background: "linear-gradient(135deg, rgba(245,158,11,0.1), rgba(255,255,255,0.03))", borderColor: "rgba(245,158,11,0.3)" }}>
+          <div style={{ display: "flex", gap: "0.7rem", alignItems: "flex-start" }}>
+            <div className="mb-icon-badge" style={{ background: "var(--accent)" }}>
+              <ShieldCheck size={20} />
+            </div>
+            <div>
+              <h3 style={{ fontWeight: 700, marginBottom: "0.5rem" }}>What MediReach is — and isn't</h3>
+              <p style={{ fontSize: "0.9rem", marginBottom: "0.6rem" }}>
+                Clarity gives general medical information and encourages you toward professional care. It does not
+                diagnose conditions, prescribe treatment, or replace a licensed clinician.
+              </p>
+              <p style={{ fontSize: "0.9rem" }}>
+                <strong>In an emergency,</strong> call your local emergency number right away. <strong>In an emotional
+                crisis or if you're thinking about suicide,</strong> in the US you can call or text 988 (Suicide &
+                Crisis Lifeline) any time.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }
@@ -2239,6 +2453,126 @@ function AboutUsPage({ onGoToChat }) {
 }
 
 /* ------------------------------------------------------------------ */
+/* ADMIN — photo gallery of image attachments across all conversations. */
+/* Client-side `isAdmin` only controls whether this renders; the real    */
+/* access control is the Supabase RLS policy that lets an is_admin=true  */
+/* profile (and only that profile) select every row in `messages` and    */
+/* `conversations` — without it, this query returns nothing for anyone.  */
+/* ------------------------------------------------------------------ */
+function AdminGallery({ isAdmin }) {
+  const [photos, setPhotos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [active, setActive] = useState(null);
+
+  useEffect(() => {
+    if (!isAdmin || !supabaseClient) { setLoading(false); return; }
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      const [{ data: convos, error: convoErr }, { data: msgs, error: msgErr }] = await Promise.all([
+        supabaseClient.from("conversations").select("id, user_id"),
+        supabaseClient.from("messages").select("id, attachments, created_at, conversation_id")
+          .eq("role", "user").order("created_at", { ascending: false }).limit(500),
+      ]);
+      if (cancelled) return;
+      if (convoErr || msgErr) {
+        setError((convoErr || msgErr).message);
+        setLoading(false);
+        return;
+      }
+      const userByConvo = Object.fromEntries((convos || []).map((c) => [c.id, c.user_id]));
+      const found = [];
+      (msgs || []).forEach((m) => {
+        (m.attachments || []).forEach((a, i) => {
+          if (a?.mimeType?.startsWith("image/") && a?.dataUrl) {
+            found.push({
+              id: `${m.id}-${i}`,
+              dataUrl: a.dataUrl,
+              name: a.name,
+              createdAt: m.created_at,
+              userId: userByConvo[m.conversation_id] || null,
+            });
+          }
+        });
+      });
+      setPhotos(found);
+      setLoading(false);
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [isAdmin]);
+
+  if (!isAdmin) {
+    return (
+      <div style={{ maxWidth: 480, margin: "0 auto", padding: "4rem 1.25rem", textAlign: "center" }}>
+        <div className="mb-icon-badge" style={{ background: "var(--danger)", margin: "0 auto 1rem" }}>
+          <ShieldCheck size={20} />
+        </div>
+        <h2 style={{ fontWeight: 800, marginBottom: "0.5rem" }}>Admins only</h2>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>This page isn't available on your account.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ position: "relative", maxWidth: 1100, margin: "0 auto", padding: "2.5rem 1.25rem 4rem", zIndex: 1 }}>
+      <h1 style={{ fontSize: "clamp(1.6rem, 3.5vw, 2.2rem)", fontWeight: 800, marginBottom: "0.4rem" }}>Photo gallery</h1>
+      <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "1.75rem" }}>
+        Every image attachment sent to Clarity across all conversations, newest first.
+        {!loading && !error && ` ${photos.length} photo${photos.length === 1 ? "" : "s"}.`}
+      </p>
+
+      {loading && <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>Loading…</p>}
+      {error && (
+        <p style={{ color: "var(--danger)", fontSize: "0.9rem" }}>
+          Couldn't load photos: {error}. If this is your first time here, make sure the admin RLS policies have been
+          added in Supabase (see setup notes).
+        </p>
+      )}
+      {!loading && !error && photos.length === 0 && (
+        <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>No photo attachments yet.</p>
+      )}
+
+      {!loading && photos.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "0.9rem" }}>
+          {photos.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => setActive(p)}
+              style={{ padding: 0, border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden", cursor: "pointer", background: "var(--card)", aspectRatio: "1", display: "block" }}
+              aria-label={`Open photo from ${new Date(p.createdAt).toLocaleString()}`}
+            >
+              <img src={p.dataUrl} alt={p.name || "Attachment"} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {active && (
+        <div
+          onClick={() => setActive(null)}
+          style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.75)", backdropFilter: "blur(4px)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem", cursor: "zoom-out" }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 640, width: "100%" }}>
+            <img src={active.dataUrl} alt={active.name || "Attachment"} style={{ width: "100%", borderRadius: 16, display: "block", boxShadow: "0 30px 60px -20px rgba(0,0,0,0.5)" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.8rem" }}>
+              <p style={{ color: "#fff", fontSize: "0.82rem" }}>
+                {new Date(active.createdAt).toLocaleString()} · user {active.userId ? active.userId.slice(0, 8) : "unknown"}
+              </p>
+              <button onClick={() => setActive(null)} className="mb-btn subtle" style={{ background: "rgba(255,255,255,0.12)", color: "#fff", borderColor: "rgba(255,255,255,0.3)" }}>
+                <X size={14} /> Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* APP SHELL                                                            */
 /* ------------------------------------------------------------------ */
 
@@ -2285,10 +2619,11 @@ function App() {
   const [page, setPage] = useState("home");
   const [pendingScroll, setPendingScroll] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [scrollPct, setScrollPct] = useState(0);
+  const scrollY = useScrollY();
   const [session, setSession] = useState(null);
   const [sessionLoading, setSessionLoading] = useState(SUPABASE_READY);
   const [guest, setGuest] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (!SUPABASE_READY) return;
@@ -2302,20 +2637,22 @@ function App() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  // Admin status is enforced server-side by RLS (see setup notes) — this is
+  // only used to decide whether to show the nav link and page locally.
+  useEffect(() => {
+    if (!SUPABASE_READY || !session?.user?.id) { setIsAdmin(false); return; }
+    let cancelled = false;
+    supabaseClient.from("profiles").select("is_admin").eq("user_id", session.user.id).maybeSingle()
+      .then(({ data }) => { if (!cancelled) setIsAdmin(!!data?.is_admin); });
+    return () => { cancelled = true; };
+  }, [session?.user?.id]);
+
   const signOut = async () => {
     if (supabaseClient) await supabaseClient.auth.signOut();
     setMenuOpen(false);
   };
 
-  useEffect(() => {
-    const onScroll = () => {
-      const h = document.documentElement;
-      const pct = h.scrollTop / (h.scrollHeight - h.clientHeight || 1);
-      setScrollPct(Math.min(1, Math.max(0, pct)));
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  const scrollPct = clamp01(scrollY / ((document.documentElement.scrollHeight - window.innerHeight) || 1));
 
   useEffect(() => {
     if (page === "home" && pendingScroll) {
@@ -2361,12 +2698,11 @@ function App() {
   return (
     <div className={`mb-root ${immersiveChat ? "mb-root-chat" : ""}`}>
       <GlobalStyles />
-      {!immersiveChat && <Blobs />}
 
       {!immersiveChat && <nav className="mb-nav">
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0.95rem 1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
           <button onClick={goHome} style={{ background: "none", border: "none", fontSize: "1.05rem", fontWeight: 800, color: "var(--text)", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.6rem", fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.01em" }}>
-            <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--grad-1)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 14px -4px rgba(59,130,246,0.5), inset 0 1px 0 rgba(255,255,255,0.35)" }}>
+            <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--grad-1)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 14px -4px rgba(20,184,166,0.5), inset 0 1px 0 rgba(255,255,255,0.35)" }}>
               <Mascot size={25} />
             </span>
             MediReach
@@ -2378,7 +2714,7 @@ function App() {
                 <button
                   key={l.id}
                   className="mb-navlink"
-                  style={{ padding: "0.5rem 0.85rem", borderRadius: 10, color: isActive ? "var(--text)" : "var(--text-muted)", background: isActive ? "rgba(255,255,255,0.06)" : "transparent" }}
+                  style={{ padding: "0.5rem 0.85rem", borderRadius: 10, color: isActive ? "var(--text)" : "var(--text-muted)", background: isActive ? "rgba(15,23,42,0.05)" : "transparent" }}
                   onClick={() => navigate(l)}
                 >
                   {l.label}
@@ -2391,6 +2727,15 @@ function App() {
               <span style={{ display: "none", fontSize: "0.78rem", color: "var(--text-muted)", fontWeight: 600 }} className="mb-nav-desktop">
                 {session.user.email} · <button onClick={signOut} className="mb-navlink" style={{ padding: 0, fontSize: "0.78rem", display: "inline" }}>Sign out</button>
               </span>
+            )}
+            {isAdmin && (
+              <button
+                className="mb-navlink"
+                style={{ padding: "0.5rem 0.85rem", borderRadius: 10, color: page === "admin" ? "var(--text)" : "var(--text-muted)", background: page === "admin" ? "rgba(15,23,42,0.05)" : "transparent" }}
+                onClick={() => { setPage("admin"); setMenuOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              >
+                Admin
+              </button>
             )}
             <RippleButton className="mb-btn ghost" style={{ padding: "0.55rem 1.15rem", display: "none", fontSize: "0.85rem" }} id="mb-nav-cta" onClick={goToChat}>
               {SUPABASE_READY && session ? "Talk now" : SUPABASE_READY ? "Sign in" : "Talk now"}
@@ -2420,21 +2765,30 @@ function App() {
       </nav>}
       {!immersiveChat && <div className="mb-progress" style={{ transform: `scaleX(${scrollPct})` }} />}
 
-      {page === "home" ? (
-        <HomePage onGoToChat={goToChat} />
-      ) : page === "about" ? (
-        <AboutUsPage onGoToChat={goToChat} />
-      ) : (
-        <ChatPage session={session} sessionLoading={sessionLoading} onSignOut={signOut} guest={guest} onGuest={() => setGuest(true)} onGoHome={goHome} />
-      )}
+      {/* Horizontal-overflow clipping lives on this wrapper, not on .mb-root/  */}
+      {/* body/html — any of those being an ancestor of the sticky <nav> above  */}
+      {/* would silently break its stickiness (a cross-browser overflow quirk). */}
+      <div className="mb-page-content">
+        {!immersiveChat && <Blobs />}
 
-      {!immersiveChat && (
-        <footer style={{ position: "relative", borderTop: "1px solid var(--border)", padding: "2rem 1.25rem", textAlign: "center", zIndex: 1 }}>
-          <p style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
-            MediReach · Built by {STUDENT_NAME} · Not a substitute for professional medical advice
-          </p>
-        </footer>
-      )}
+        {page === "home" ? (
+          <HomePage onGoToChat={goToChat} />
+        ) : page === "about" ? (
+          <AboutUsPage onGoToChat={goToChat} />
+        ) : page === "admin" ? (
+          <AdminGallery isAdmin={isAdmin} />
+        ) : (
+          <ChatPage session={session} sessionLoading={sessionLoading} onSignOut={signOut} guest={guest} onGuest={() => setGuest(true)} onGoHome={goHome} />
+        )}
+
+        {!immersiveChat && (
+          <footer style={{ position: "relative", borderTop: "1px solid var(--border)", padding: "2rem 1.25rem", textAlign: "center", zIndex: 1 }}>
+            <p style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
+              MediReach · Built by {STUDENT_NAME} · Not a substitute for professional medical advice
+            </p>
+          </footer>
+        )}
+      </div>
     </div>
   );
 }
