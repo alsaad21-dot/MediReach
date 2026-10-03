@@ -168,6 +168,14 @@ const GlobalStyles = () => (
     /* stickiness (a well-known cross-browser quirk), so this can't live    */
     /* on html/body/.mb-root since .mb-nav is their descendant too.         */
     .mb-page-content { overflow-x: hidden; }
+    /* In the immersive chat workspace, .mb-page-content sits between        */
+    /* .mb-root-chat (a 100dvh flex column) and .mb-chat-app (which needs    */
+    /* flex:1 to fill the remaining height). A plain block div breaks that   */
+    /* chain — it shrinks to content height instead of passing the space     */
+    /* down, leaving the chat squashed into the top of the screen with a     */
+    /* dead gap below. Scoped to chat mode only so the normal page (which    */
+    /* just scrolls normally) is untouched.                                  */
+    .mb-root-chat .mb-page-content { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 
     .mb-root {
       --primary: #14B8A6;
