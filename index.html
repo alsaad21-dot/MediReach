@@ -523,7 +523,12 @@ const GlobalStyles = () => (
       font-family: var(--font-body); letter-spacing: 0; line-height: 1.5;
     }
     .mb-root button, .mb-root input, .mb-root textarea { font-family: inherit; }
-    .mb-root-chat { height: var(--app-h, 100dvh); }
+    /* The chat is pinned to the *visible* area (see the visualViewport effect in App). */
+    /* iOS Safari scrolls the page when the keyboard opens; a fixed box that follows the */
+    /* visual viewport stays on screen instead of sliding away and leaving blank space.  */
+    html, body { background: #FAF8F5; }
+    html.mb-lock, html.mb-lock body { overflow: hidden; overscroll-behavior: none; height: 100%; }
+    .mb-root-chat { position: fixed; top: var(--app-top, 0px); left: 0; right: 0; height: var(--app-h, 100dvh); min-height: 0; }
     .mb-root :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
     .mb-input:focus-visible { outline: none; }
     .mb-navlink { font-family: var(--font-body); font-weight: 500; }
@@ -631,7 +636,7 @@ const GlobalStyles = () => (
     .mb-disclaimer { text-align: center; font-size: 0.76rem; color: var(--text-faint); margin: 0.6rem 0 0; line-height: 1.4; }
 
     /* ---- dialogs (sign in, about) ---- */
-    .mb-modal-scrim { position: fixed; inset: 0; z-index: 100; background: rgba(15,27,45,0.42); display: flex; align-items: center; justify-content: center; padding: 1rem; animation: mb-fade 0.18s ease both; }
+    .mb-modal-scrim { position: fixed; top: var(--app-top, 0px); left: 0; right: 0; height: var(--app-h, 100dvh); z-index: 100; background: rgba(15,27,45,0.42); display: flex; align-items: center; justify-content: center; padding: 1rem; animation: mb-fade 0.18s ease both; }
     .mb-modal { position: relative; background: var(--card); color: var(--text); border-radius: 20px; width: 100%; max-height: calc(var(--app-h, 100dvh) - 2rem); overflow-y: auto; padding: 1.75rem; box-shadow: 0 24px 64px -16px rgba(15,27,45,0.35); animation: mb-pop 0.2s cubic-bezier(0.22, 1, 0.36, 1) both; outline: none; }
     .mb-modal-sm { max-width: 420px; } .mb-modal-md { max-width: 480px; } .mb-modal-lg { max-width: 560px; }
     .mb-modal-close { position: absolute; top: 0.85rem; right: 0.85rem; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border: none; background: none; border-radius: 10px; cursor: pointer; color: var(--text-muted); }
@@ -2443,25 +2448,36 @@ function App() {
     }
   }, [session, authDialog]);
 
-  // Keep the layout the height of the *visible* screen so the on-screen keyboard
-  // never covers the composer on phones.
+  // Keep the chat exactly the size and position of the *visible* screen, so the
+  // on-screen keyboard (which scrolls the page on iPhones) can never push it away.
   useEffect(() => {
     const vv = window.visualViewport;
-    if (!vv) return;
-    const root = document.documentElement;
+    const html = document.documentElement;
     const update = () => {
-      root.style.setProperty("--app-h", `${Math.round(vv.height)}px`);
-      if (vv.height < window.innerHeight - 80) window.scrollTo(0, 0);
+      const h = vv ? vv.height : window.innerHeight;
+      const top = vv ? vv.offsetTop : 0;
+      html.style.setProperty("--app-h", `${Math.round(h)}px`);
+      html.style.setProperty("--app-top", `${Math.round(top)}px`);
     };
     update();
-    vv.addEventListener("resize", update);
-    vv.addEventListener("scroll", update);
+    if (vv) { vv.addEventListener("resize", update); vv.addEventListener("scroll", update); }
+    window.addEventListener("scroll", update);
+    window.addEventListener("orientationchange", update);
     return () => {
-      vv.removeEventListener("resize", update);
-      vv.removeEventListener("scroll", update);
-      root.style.removeProperty("--app-h");
+      if (vv) { vv.removeEventListener("resize", update); vv.removeEventListener("scroll", update); }
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("orientationchange", update);
+      html.style.removeProperty("--app-h");
+      html.style.removeProperty("--app-top");
     };
   }, []);
+
+  // No page-level scrolling behind the chat (the conversation scrolls inside itself).
+  useEffect(() => {
+    const html = document.documentElement;
+    if (page === "chat") html.classList.add("mb-lock");
+    return () => html.classList.remove("mb-lock");
+  }, [page]);
 
   const goHome = () => { setPage("chat"); window.scrollTo(0, 0); };
   const requireAuth = (mode, pending) => setAuthDialog({ mode, pending: pending || null });
