@@ -91,6 +91,10 @@ const SUPABASE_ANON_KEY = "sb_publishable_RXjnbT5WVKUP1v-eV3SgyQ_CeFk7aey";
 const SUPABASE_CONFIGURED = SUPABASE_URL.startsWith("http") && SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY";
 // If the Supabase script failed to load (CDN hiccup, blocked network) we fall
 // back to chat-without-saving instead of crashing the whole page.
+// A password-reset email link comes back as ...#access_token=...&type=recovery (or #error=...&error_code=otp_expired
+// if it was used twice or has expired). Read it now, before supabase-js tidies the address bar.
+const RECOVERY_IN_URL = typeof window !== "undefined" && /type=recovery/.test(window.location.hash + window.location.search);
+const RECOVERY_LINK_EXPIRED = typeof window !== "undefined" && /error_code=otp_expired|error_description=.*expired/i.test(window.location.hash + window.location.search);
 const supabaseClient = SUPABASE_CONFIGURED && window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 const SUPABASE_READY = !!supabaseClient;
 
@@ -1658,6 +1662,7 @@ function AuthPanel() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
+  const [linkExpired, setLinkExpired] = useState(RECOVERY_LINK_EXPIRED);
 
   if (!SUPABASE_READY) {
     return (
@@ -1677,7 +1682,12 @@ function AuthPanel() {
     setError(null);
     setNotice(null);
     try {
-      if (mode === "signup") {
+      if (mode === "forgot") {
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/` });
+        if (error) throw error;
+        // Same message whether or not the email has an account, so this can't be used to probe for accounts.
+        setNotice("If there's an account for that email, a reset link is on its way. It can take a minute — check spam too.");
+      } else if (mode === "signup") {
         const { error } = await supabaseClient.auth.signUp({
           email,
           password,
@@ -1701,11 +1711,18 @@ function AuthPanel() {
     <div className="mb-card mb-glass" style={{ padding: "2rem", maxWidth: 420, margin: "0 auto", boxShadow: "0 20px 50px rgba(15,23,42,0.1)" }}>
       <div className="mb-avatar" style={{ margin: "0 auto 1rem" }}><Mascot size={48} /></div>
       <h3 style={{ textAlign: "center", fontWeight: 800, fontSize: "1.2rem", marginBottom: "0.35rem" }}>
-        {mode === "signup" ? "Create your account" : "Welcome back"}
+        {mode === "signup" ? "Create your account" : mode === "forgot" ? "Reset your password" : "Welcome back"}
       </h3>
       <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.86rem", marginBottom: "1.4rem" }}>
-        Sign in so Clarity can remember your conversations across visits.
+        {mode === "forgot"
+          ? "Enter the email you signed up with and we'll send you a link to choose a new password."
+          : "Sign in so Clarity can remember your conversations across visits."}
       </p>
+      {linkExpired && mode !== "forgot" && (
+        <p style={{ color: "var(--danger)", fontSize: "0.82rem", margin: "0 0 0.9rem", textAlign: "center" }}>
+          That reset link has expired or was already used. Request a new one below.
+        </p>
+      )}
       <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
         {mode === "signup" && (
           <div style={{ display: "flex", gap: "0.6rem" }}>
@@ -1717,22 +1734,79 @@ function AuthPanel() {
         )}
         <input className="mb-field" type="email" required autoComplete="email" placeholder="Email"
           value={email} onChange={(e) => setEmail(e.target.value)} />
-        <input className="mb-field" type="password" required minLength={6}
-          autoComplete={mode === "signup" ? "new-password" : "current-password"} placeholder="Password (min. 6 characters)"
-          value={password} onChange={(e) => setPassword(e.target.value)} />
+        {mode !== "forgot" && (
+          <input className="mb-field" type="password" required minLength={6}
+            autoComplete={mode === "signup" ? "new-password" : "current-password"} placeholder="Password (min. 6 characters)"
+            value={password} onChange={(e) => setPassword(e.target.value)} />
+        )}
+        {mode === "signin" && (
+          <button type="button" className="mb-navlink" style={{ alignSelf: "flex-end", padding: 0, fontSize: "0.8rem", marginTop: "-0.25rem" }}
+            onClick={() => { setMode("forgot"); setError(null); setNotice(null); setLinkExpired(false); }}>
+            Forgot password?
+          </button>
+        )}
         {error && <p style={{ color: "var(--danger)", fontSize: "0.82rem", margin: 0 }}>{error}</p>}
         {notice && <p style={{ color: "var(--success)", fontSize: "0.82rem", margin: 0 }}>{notice}</p>}
         <RippleButton type="submit" className="mb-btn" disabled={loading} style={{ justifyContent: "center", opacity: loading ? 0.7 : 1 }}>
-          {loading ? "Please wait…" : mode === "signup" ? "Sign up" : "Sign in"}
+          {loading ? "Please wait…" : mode === "signup" ? "Sign up" : mode === "forgot" ? "Send reset link" : "Sign in"}
         </RippleButton>
       </form>
       <button
         className="mb-navlink"
         style={{ display: "block", margin: "1rem auto 0" }}
-        onClick={() => { setMode((m) => (m === "signup" ? "signin" : "signup")); setError(null); setNotice(null); }}
+        onClick={() => { setMode((m) => (m === "signin" ? "signup" : "signin")); setError(null); setNotice(null); setLinkExpired(false); }}
       >
-        {mode === "signup" ? "Already have an account? Sign in" : "New here? Create an account"}
+        {mode === "signin" ? "New here? Create an account" : mode === "forgot" ? "Back to sign in" : "Already have an account? Sign in"}
       </button>
+    </div>
+  );
+}
+
+// Shown after someone clicks the link in a password-reset email (they arrive already signed in via the link).
+function ResetPasswordModal({ onDone }) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [saved, setSaved] = useState(false);
+
+  const save = async (e) => {
+    e.preventDefault();
+    if (password !== confirm) { setError("Those two passwords don't match."); return; }
+    setLoading(true);
+    setError(null);
+    const { error } = await supabaseClient.auth.updateUser({ password });
+    setLoading(false);
+    if (error) { setError(error.message); return; }
+    setSaved(true);
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "1.25rem" }}>
+      <div className="mb-card" style={{ padding: "1.85rem", maxWidth: 380, width: "100%" }} role="dialog" aria-modal="true" aria-label="Choose a new password">
+        <h3 style={{ fontWeight: 800, fontSize: "1.1rem", marginBottom: "0.4rem" }}>{saved ? "Password updated" : "Choose a new password"}</h3>
+        {saved ? (
+          <>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.86rem", marginBottom: "1.1rem" }}>All set — you're signed in with your new password.</p>
+            <RippleButton type="button" className="mb-btn" style={{ width: "100%", justifyContent: "center" }} onClick={onDone}>Continue</RippleButton>
+          </>
+        ) : (
+          <>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.86rem", marginBottom: "1.1rem" }}>Pick something at least 6 characters long.</p>
+            <form onSubmit={save} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              <input className="mb-field" type="password" required minLength={6} autoFocus autoComplete="new-password" placeholder="New password"
+                value={password} onChange={(e) => setPassword(e.target.value)} />
+              <input className="mb-field" type="password" required minLength={6} autoComplete="new-password" placeholder="Confirm new password"
+                value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+              {error && <p style={{ color: "var(--danger)", fontSize: "0.82rem", margin: 0 }}>{error}</p>}
+              <RippleButton type="submit" className="mb-btn" disabled={loading} style={{ justifyContent: "center", opacity: loading ? 0.7 : 1 }}>
+                {loading ? "Saving…" : "Save new password"}
+              </RippleButton>
+            </form>
+            <button className="mb-navlink" style={{ display: "block", margin: "0.9rem auto 0", fontSize: "0.8rem" }} onClick={onDone}>Skip for now</button>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -2850,6 +2924,7 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [guestLoading, setGuestLoading] = useState(false);
   const [guestError, setGuestError] = useState(null);
+  const [recovering, setRecovering] = useState(RECOVERY_IN_URL);
 
   useEffect(() => {
     if (!SUPABASE_READY) return;
@@ -2858,7 +2933,8 @@ function App() {
     }).catch((err) => {
       console.error("Couldn't restore session:", err);
     }).finally(() => setSessionLoading(false));
-    const { data: listener } = supabaseClient.auth.onAuthStateChange((_event, newSession) => {
+    const { data: listener } = supabaseClient.auth.onAuthStateChange((event, newSession) => {
+      if (event === "PASSWORD_RECOVERY") setRecovering(true);
       setSession(newSession);
     });
     return () => listener.subscription.unsubscribe();
@@ -2938,6 +3014,12 @@ function App() {
   return (
     <div className={`mb-root ${immersiveChat ? "mb-root-chat" : ""}`}>
       <GlobalStyles />
+      {recovering && session && (
+        <ResetPasswordModal onDone={() => {
+          setRecovering(false);
+          try { window.history.replaceState(null, "", window.location.pathname); } catch (e) { /* ignore */ }
+        }} />
+      )}
 
       {!immersiveChat && <nav className="mb-nav">
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0.95rem 1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
