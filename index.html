@@ -5,10 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>MediReach — A calmer first step toward care</title>
 <link rel="icon" href="data:,">
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<!-- Versions are pinned on purpose: an unpinned URL (e.g. plain @babel/standalone)
+     silently jumps to the newest major release and can break the whole site. -->
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.10/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
 <script type="importmap">
 {
@@ -85,8 +87,11 @@ const CHAT_ENDPOINT_READY = true;
 // `messages` table (see the SQL in the setup notes / README).
 const SUPABASE_URL = "https://qtofuzvlftxlqxnejxqh.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_RXjnbT5WVKUP1v-eV3SgyQ_CeFk7aey";
-const SUPABASE_READY = SUPABASE_URL.startsWith("http") && SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY";
-const supabaseClient = SUPABASE_READY ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const SUPABASE_CONFIGURED = SUPABASE_URL.startsWith("http") && SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY";
+// If the Supabase script failed to load (CDN hiccup, blocked network) we fall
+// back to chat-without-saving instead of crashing the whole page.
+const supabaseClient = SUPABASE_CONFIGURED && window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const SUPABASE_READY = !!supabaseClient;
 
 const SYSTEM_PROMPT_BASE = `You are Clarity, the AI assistant inside MediReach — a platform built to bridge the gap between people and the healthcare they're putting off. Many users are anxious about symptoms, afraid of bad news, or unsure if something is "serious enough" to see a doctor.
 
@@ -872,7 +877,10 @@ function ClarityFigure3D({ mood = "calm", talking = false, width = 480, height =
     if (window.THREE) return;
     const onReady = () => setThreeReady(true);
     window.addEventListener("mb-three-ready", onReady);
-    return () => window.removeEventListener("mb-three-ready", onReady);
+    // If Three.js never arrives (CDN down, blocked network), show the flat
+    // mascot instead of leaving an empty space where the robot should be.
+    const giveUp = setTimeout(() => { if (!window.THREE) setWebglFailed(true); }, 8000);
+    return () => { window.removeEventListener("mb-three-ready", onReady); clearTimeout(giveUp); };
   }, []);
 
   // Scene setup — runs once Three.js is ready and the mount node exists.
@@ -1133,28 +1141,27 @@ function parseReply(raw) {
   let text = raw || "";
   let mood = "calm";
   let memory = null;
-
-  const moodMatch = /^\s*\[\[\s*mood\s*:\s*([a-z]+)\s*\]\]\s*/i.exec(text);
-  if (moodMatch) {
-    const found = moodMatch[1].toLowerCase();
-    mood = MOOD_NAMES.includes(found) ? found : "calm";
-    text = text.slice(moodMatch[0].length);
-  }
-
-  const memoryMatch = /^\s*\[\[\s*memory\s*:([^\]]*)\]\]\s*/i.exec(text);
-  if (memoryMatch) {
-    memory = memoryMatch[1].trim();
-    text = text.slice(memoryMatch[0].length);
-  }
-
   let title = null;
-  const titleMatch = /^\s*\[\[\s*title\s*:([^\]]*)\]\]\s*/i.exec(text);
-  if (titleMatch) {
-    title = titleMatch[1].trim();
-    text = text.slice(titleMatch[0].length);
-  }
 
-  return { mood, memory, title, text };
+  // Tags are pulled out wherever they appear (and in any order) — the model
+  // doesn't always put them first, and a stray tag must never leak into the
+  // visible message. The first occurrence of each one wins.
+  let moodSeen = false;
+  text = text.replace(/\[\[\s*mood\s*:\s*([a-z]+)\s*\]\][ \t]*\r?\n?/gi, (_, found) => {
+    const m = found.toLowerCase();
+    if (!moodSeen && MOOD_NAMES.includes(m)) { mood = m; moodSeen = true; }
+    return "";
+  });
+  text = text.replace(/\[\[\s*memory\s*:([^\]]*)\]\][ \t]*\r?\n?/gi, (_, value) => {
+    if (memory === null) memory = value.trim();
+    return "";
+  });
+  text = text.replace(/\[\[\s*title\s*:([^\]]*)\]\][ \t]*\r?\n?/gi, (_, value) => {
+    if (title === null) title = value.trim();
+    return "";
+  });
+
+  return { mood, memory, title, text: text.trimStart() };
 }
 
 /* Strips markdown syntax so text-to-speech doesn't read out asterisks,     */
@@ -1250,7 +1257,11 @@ function renderMarkdownLite(text) {
 // Kept comfortably under Vercel's ~4.5MB request-body limit — base64
 // encoding inflates file size by about a third, and the JSON envelope
 // (system prompt, conversation text, etc.) adds a bit more on top.
-const MAX_ATTACHMENT_MB = 2.5;
+const MAX_ATTACHMENT_MB = 2.5;        // any single file
+const MAX_TOTAL_ATTACHMENT_MB = 2.8;  // everything attached to one message, combined
+
+// Real size in bytes of the file behind a data: URL (base64 is ~4/3 bigger).
+const attachmentBytes = (a) => Math.round((((a.dataUrl || "").split(",")[1] || "").length * 3) / 4);
 
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -1261,29 +1272,37 @@ function readFileAsDataUrl(file) {
   });
 }
 
-/* Downscales an image client-side (max 1600px, JPEG) before it's sent —   */
-/* keeps phone photos well under the request-size limit and API cost low.  */
-function resizeImageFile(file, maxDim = 1600, quality = 0.82) {
+/* Downscales an image data: URL (max 1600px, JPEG) before it's sent — keeps */
+/* phone photos and webcam frames well under the request-size limit and API  */
+/* cost low. Transparent PNGs get a white background (JPEG has no alpha, so  */
+/* they'd otherwise turn solid black).                                       */
+function resizeDataUrl(dataUrl, name = "image", maxDim = 1600, quality = 0.82) {
   return new Promise((resolve, reject) => {
-    readFileAsDataUrl(file).then((dataUrl) => {
-      const img = new Image();
-      img.onerror = () => reject(new Error(`Couldn't read ${file.name}.`));
-      img.onload = () => {
-        let { width, height } = img;
-        if (width > maxDim || height > maxDim) {
-          const scale = maxDim / Math.max(width, height);
-          width = Math.round(width * scale);
-          height = Math.round(height * scale);
-        }
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", quality));
-      };
-      img.src = dataUrl;
-    }, reject);
+    const img = new Image();
+    img.onerror = () => reject(new Error(`Couldn't read ${name}.`));
+    img.onload = () => {
+      let { width, height } = img;
+      if (!width || !height) { reject(new Error(`Couldn't read ${name}.`)); return; }
+      if (width > maxDim || height > maxDim) {
+        const scale = maxDim / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.src = dataUrl;
   });
+}
+
+function resizeImageFile(file, maxDim = 1600, quality = 0.82) {
+  return readFileAsDataUrl(file).then((dataUrl) => resizeDataUrl(dataUrl, file.name, maxDim, quality));
 }
 
 async function processAttachment(file) {
@@ -1292,11 +1311,15 @@ async function processAttachment(file) {
     const dataUrl = await resizeImageFile(file);
     return { id, name: file.name, mimeType: "image/jpeg", dataUrl };
   }
+  const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+  if (!isPdf) {
+    throw new Error(`${file.name} isn't a photo or PDF — Clarity can read images and PDFs.`);
+  }
   if (file.size > MAX_ATTACHMENT_MB * 1024 * 1024) {
     throw new Error(`${file.name} is over ${MAX_ATTACHMENT_MB}MB — try a smaller file.`);
   }
   const dataUrl = await readFileAsDataUrl(file);
-  return { id, name: file.name, mimeType: file.type || "application/octet-stream", dataUrl };
+  return { id, name: file.name, mimeType: "application/pdf", dataUrl };
 }
 
 function AttachmentThumb({ attachment, onRemove, size = 56 }) {
@@ -1805,6 +1828,22 @@ function CameraModal({ onCapture, onClose }) {
   );
 }
 
+const FEEDBACK_DONE_KEY = "mb-feedback-done";
+const feedbackAlreadyHandled = (conversationId) => {
+  if (!conversationId) return false;
+  try { return JSON.parse(localStorage.getItem(FEEDBACK_DONE_KEY) || "[]").includes(conversationId); } catch (e) { return false; }
+};
+const markFeedbackHandled = (conversationId) => {
+  if (!conversationId) return;
+  try {
+    const list = JSON.parse(localStorage.getItem(FEEDBACK_DONE_KEY) || "[]");
+    if (!list.includes(conversationId)) {
+      list.push(conversationId);
+      localStorage.setItem(FEEDBACK_DONE_KEY, JSON.stringify(list.slice(-200)));
+    }
+  } catch (e) {}
+};
+
 /* Quick, low-friction star rating — shows once someone's actually had a     */
 /* couple of replies from Clarity, never nags again once they've rated.     */
 function FeedbackPrompt({ session, conversationId, onDone }) {
@@ -1856,7 +1895,7 @@ function FeedbackPrompt({ session, conversationId, onDone }) {
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 autoFocus
-                style={{ width: "100%", resize: "none", fontSize: "0.85rem" }}
+                style={{ width: "100%", resize: "none", fontSize: "1rem" }}
               />
               <RippleButton className="mb-btn" onClick={submit} style={{ marginTop: "0.6rem", width: "100%", justifyContent: "center", padding: "0.6rem" }}>
                 Send feedback
@@ -1895,6 +1934,14 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const composerRef = useRef(null);
+  // Mirrors `activeId` so async code (which only sees stale closures) can read
+  // the current value, plus bookkeeping that keeps replies from landing in the
+  // wrong chat or triggering a pointless reload of a conversation we just made.
+  const activeIdRef = useRef(null);
+  activeIdRef.current = activeId;
+  const justCreatedRef = useRef(null);
+  const viewTokenRef = useRef(0);       // bumped whenever the user switches chat / starts a new one
+  const pendingSaveRef = useRef(Promise.resolve());
 
   // Auto-grow the composer textarea with content, capped by CSS max-height.
   useEffect(() => {
@@ -1904,10 +1951,10 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
     el.style.height = el.scrollHeight + "px";
   }, [input]);
 
-  // Reset the feedback prompt for every new/different conversation, so it's
-  // asked once per chat rather than just once ever.
+  // Ask for feedback once per conversation — not once ever, and not again each
+  // time someone re-opens a chat they've already rated or dismissed.
   useEffect(() => {
-    setFeedbackDismissed(false);
+    setFeedbackDismissed(feedbackAlreadyHandled(activeId));
   }, [activeId]);
 
   // Persist the spoken-replies preference, and stop mid-sentence if turned off.
@@ -1987,6 +2034,12 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
         setMessages([]);
         return;
       }
+      // We just created this conversation ourselves, so what's on screen is
+      // already the truth — refetching now could race the inserts and wipe it.
+      if (justCreatedRef.current === activeId) {
+        justCreatedRef.current = null;
+        return;
+      }
       setMessagesLoading(true);
       const { data, error } = await supabaseClient
         .from("messages")
@@ -2010,8 +2063,8 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
   }, [activeId, session?.user?.id]);
 
   const persistMessage = (msg, conversationId) => {
-    if (!supabaseClient || !session) return;
-    supabaseClient.from("messages").insert({
+    if (!supabaseClient || !session) return Promise.resolve(false);
+    return Promise.resolve(supabaseClient.from("messages").insert({
       user_id: session.user.id,
       conversation_id: conversationId,
       role: msg.role,
@@ -2020,17 +2073,27 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
       attachments: msg.attachments && msg.attachments.length
         ? msg.attachments.map((a) => ({ name: a.name, mimeType: a.mimeType, dataUrl: a.dataUrl }))
         : null,
-    }).then(({ error }) => { if (error) console.error("Couldn't save message:", error.message); });
+    })).then(({ error }) => {
+      if (error) console.error("Couldn't save message:", error.message);
+      return !error;
+    }, () => false);
   };
+
+  const TOTAL_LIMIT_BYTES = MAX_TOTAL_ATTACHMENT_MB * 1024 * 1024;
+  const tooMuchMessage = `That's too much to send at once — keep attachments under ${MAX_TOTAL_ATTACHMENT_MB}MB in total.`;
 
   const handleFilesSelected = async (e) => {
     const files = Array.from(e.target.files || []);
     e.target.value = "";
     if (!files.length) return;
     setAttachError(null);
+    let runningBytes = attachments.reduce((n, a) => n + attachmentBytes(a), 0);
     for (const file of files) {
       try {
         const processed = await processAttachment(file);
+        const size = attachmentBytes(processed);
+        if (runningBytes + size > TOTAL_LIMIT_BYTES) throw new Error(tooMuchMessage);
+        runningBytes += size;
         setAttachments((prev) => [...prev, processed]);
       } catch (err) {
         setAttachError(err.message || `Couldn't add ${file.name}.`);
@@ -2048,15 +2111,19 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
     }
   };
 
-  const handleCameraCapture = (dataUrl) => {
+  // Webcam frames can be 4K — shrink them like any other photo before attaching.
+  const handleCameraCapture = async (dataUrl) => {
     setCameraOpen(false);
     setAttachError(null);
-    setAttachments((prev) => [...prev, {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      name: `photo-${Date.now()}.jpg`,
-      mimeType: "image/jpeg",
-      dataUrl,
-    }]);
+    try {
+      const small = await resizeDataUrl(dataUrl, "photo");
+      const photo = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, name: `photo-${Date.now()}.jpg`, mimeType: "image/jpeg", dataUrl: small };
+      const used = attachments.reduce((n, a) => n + attachmentBytes(a), 0);
+      if (used + attachmentBytes(photo) > TOTAL_LIMIT_BYTES) throw new Error(tooMuchMessage);
+      setAttachments((prev) => [...prev, photo]);
+    } catch (err) {
+      setAttachError(err.message || "Couldn't use that photo — please try again.");
+    }
   };
 
   const persistMemory = (newMemory) => {
@@ -2078,16 +2145,26 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
     });
   };
 
-  const ensureConversation = async () => {
+  // `activate` = also open the new conversation in the main view. It's false
+  // when the user has already moved on to another chat while a reply was in
+  // flight, so we don't yank them away from what they're looking at.
+  const ensureConversation = async (activate = true) => {
     if (!supabaseClient || !session) return null;
     const { data, error } = await supabaseClient
       .from("conversations")
       .insert({ user_id: session.user.id, title: "New conversation" })
       .select("id, title, updated_at")
       .single();
-    if (error || !data) return null;
+    if (error || !data) {
+      if (error) console.error("Couldn't create conversation:", error.message);
+      return null;
+    }
     setConversations((prev) => [data, ...prev]);
-    setActiveId(data.id);
+    if (activate) {
+      justCreatedRef.current = data.id;
+      activeIdRef.current = data.id;
+      setActiveId(data.id);
+    }
     return data.id;
   };
 
@@ -2103,8 +2180,12 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
     const pendingAttachments = attachments;
     if ((!trimmed && pendingAttachments.length === 0) || loading) return;
     const isFirst = messages.length === 0;
+    const priorMessages = messages;
     const userMsg = { role: "user", content: trimmed, attachments: pendingAttachments };
-    const newMessages = [...messages, userMsg];
+    const newMessages = [...priorMessages, userMsg];
+    const idAtSend = activeId;
+    const viewToken = viewTokenRef.current;
+    const stillHere = () => viewTokenRef.current === viewToken;   // false once the user opens another chat
     setMessages(newMessages);
     setInput("");
     setAttachments([]);
@@ -2112,12 +2193,6 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
     setLoading(true);
     setError(null);
     if (isFirst) setCelebrate((c) => c + 1);
-
-    let conversationId = activeId;
-    if (SUPABASE_READY && session && !conversationId) {
-      conversationId = await ensureConversation();
-    }
-    if (conversationId) persistMessage(userMsg, conversationId);
 
     let systemPrompt = buildSystemPrompt(memory, fullName);
     if (isFirst) {
@@ -2145,25 +2220,66 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
           })),
         }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.error || `Request failed (${response.status})`);
+      // Read as text first: platform errors (e.g. "request too large") aren't JSON.
+      const rawBody = await response.text();
+      let data = null;
+      try { data = JSON.parse(rawBody); } catch (e) {}
+      if (!response.ok) {
+        if (response.status === 413) throw new Error("That message is too large to send — try fewer or smaller attachments.");
+        throw new Error(data?.error || (response.status >= 500
+          ? "Clarity is busy right now — give it a few seconds and try again."
+          : `Something went wrong (error ${response.status}). Please try again.`));
+      }
+      if (!data) throw new Error("Got an unexpected reply from the server. Please try again.");
+
       const parts = data.candidates?.[0]?.content?.parts || [];
-      const rawReply = parts.map((p) => p.text).join("") || "I wasn't able to generate a response — try rephrasing.";
+      const rawReply = parts.map((p) => p.text || "").join("") || "I wasn't able to generate a response — try rephrasing.";
       const { mood, memory: newMemory, title: newTitle, text } = parseReply(rawReply);
       const assistantMsg = { role: "assistant", content: text.trim(), mood };
-      setMessages((prev) => [...prev, assistantMsg]);
-      if (speechOn) toggleSpeak(assistantMsg.content, newMessages.length);
-      if (conversationId) {
-        persistMessage(assistantMsg, conversationId);
-        touchConversation(conversationId);
-        if (isFirst && newTitle) renameConversation(conversationId, newTitle);
+
+      if (stillHere()) {
+        setMessages((prev) => [...prev, assistantMsg]);
+        if (speechOn) toggleSpeak(assistantMsg.content, newMessages.length);
       }
+
+      // Saving happens only once Clarity has actually answered, so a failed
+      // send never leaves a half-saved exchange (or an empty conversation)
+      // behind. Saves are chained so two quick messages can't both create a
+      // "new" conversation.
+      const persistExchange = async () => {
+        if (!SUPABASE_READY || !session) return;
+        await pendingSaveRef.current;
+        const here = stillHere();
+        let conversationId = here ? activeIdRef.current : idAtSend;
+        if (!conversationId) conversationId = await ensureConversation(here);
+        let saved = false;
+        if (conversationId) {
+          const userSaved = await persistMessage(userMsg, conversationId);
+          const botSaved = await persistMessage(assistantMsg, conversationId);
+          saved = userSaved && botSaved;
+          touchConversation(conversationId);
+          if (isFirst && newTitle) renameConversation(conversationId, newTitle);
+        }
+        if (!saved && stillHere()) {
+          setError("Heads up: this conversation couldn't be saved to your history, but Clarity's reply is above.");
+        }
+      };
+      pendingSaveRef.current = persistExchange().catch((err) => console.error("Couldn't save conversation:", err));
+
       if (newMemory !== null && newMemory !== memory) {
         setMemory(newMemory);
         persistMemory(newMemory);
       }
     } catch (err) {
-      setError(err.message ? `Clarity hit an error: ${err.message}` : "Something went wrong reaching Clarity. Please try again.");
+      if (stillHere()) {
+        // Put everything back so nothing the person typed or attached is lost.
+        setMessages(priorMessages);
+        setInput((cur) => cur || trimmed);
+        setAttachments((cur) => (cur.length ? cur : pendingAttachments));
+        setError(err instanceof TypeError
+          ? "Couldn't reach Clarity — check your internet connection and try again."
+          : (err.message || "Something went wrong reaching Clarity. Please try again."));
+      }
     } finally {
       setLoading(false);
     }
@@ -2175,6 +2291,7 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
   };
 
   const startNewChat = () => {
+    viewTokenRef.current += 1;
     setActiveId(null);
     setMessages([]);
     setError(null);
@@ -2183,6 +2300,7 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
   };
 
   const selectConversation = (id) => {
+    viewTokenRef.current += 1;
     setActiveId(id);
     setError(null);
     setSidebarOpen(false);
@@ -2329,7 +2447,7 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
             </div>
           ))}
           {showFeedback && (
-            <FeedbackPrompt session={session} conversationId={activeId} onDone={() => setFeedbackDismissed(true)} />
+            <FeedbackPrompt session={session} conversationId={activeId} onDone={() => { markFeedbackHandled(activeId); setFeedbackDismissed(true); }} />
           )}
           {loading && (
             <div className="mb-msg-row assistant">
@@ -2493,7 +2611,8 @@ function AdminGallery({ isAdmin }) {
       const [{ data: convos, error: convoErr }, { data: msgs, error: msgErr }] = await Promise.all([
         supabaseClient.from("conversations").select("id, user_id"),
         supabaseClient.from("messages").select("id, attachments, created_at, conversation_id")
-          .eq("role", "user").order("created_at", { ascending: false }).limit(500),
+          .eq("role", "user").not("attachments", "is", null)
+          .order("created_at", { ascending: false }).limit(200),
       ]);
       if (cancelled) return;
       if (convoErr || msgErr) {
@@ -2656,8 +2775,9 @@ function App() {
     if (!SUPABASE_READY) return;
     supabaseClient.auth.getSession().then(({ data }) => {
       setSession(data.session);
-      setSessionLoading(false);
-    });
+    }).catch((err) => {
+      console.error("Couldn't restore session:", err);
+    }).finally(() => setSessionLoading(false));
     const { data: listener } = supabaseClient.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
     });
