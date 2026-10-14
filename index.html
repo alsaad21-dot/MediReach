@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MediReach — A calmer first step toward care</title>
+<title>Clarity — understand your health, prepare for your appointment</title>
+<meta name="theme-color" content="#FAF8F5" />
+<meta name="description" content="Clarity is an AI health information assistant from MediReach. Understand medical information and prepare for conversations with your healthcare professional." />
 <link rel="icon" href="data:,">
 <!-- Versions are pinned on purpose: an unpinned URL (e.g. plain @babel/standalone)
      silently jumps to the newest major release and can break the whole site. -->
@@ -127,24 +129,11 @@ function buildSystemPrompt(memory, fullName) {
   return `${SYSTEM_PROMPT_BASE}\n\nWhat you currently know about this specific person:\n${nameLine}${known}`;
 }
 
-const STATS = [
-  { value: 42, suffix: "%", label: "worry they have an undiagnosed condition", source: "PatientPoint, 2024" },
-  { value: 54, suffix: "%", label: "feel anxious before a doctor's appointment", source: "PatientPoint, 2024" },
-  { value: 40, suffix: "%", label: "have put off care because of appointment anxiety", source: "PatientPoint, 2023" },
-  { value: 58, suffix: "%", label: "say fear of bad news is their main worry", source: "PatientPoint, 2024" },
-];
-
-const STEPS = [
-  { icon: HeartPulse, title: "Say how you're feeling", desc: "No need for the right words — describe your symptoms, or just the worry itself.", grad: "var(--grad-1)" },
-  { icon: Sparkles, title: "Get clear information", desc: "Clarity explains what's going on in plain language — never a diagnosis, always judgment-free.", grad: "var(--grad-2)" },
-  { icon: Compass, title: "Leave with a next step", desc: "Every conversation ends with honest guidance on whether — and how soon — to see someone.", grad: "var(--grad-1)" },
-];
-
 const CHAT_STARTERS = [
-  "I've had a headache for days 😟",
-  "I'm scared to check a lump I found",
-  "Is my chest pain serious?",
-  "I keep putting off a checkup",
+  "Help me understand a medical term.",
+  "What questions should I ask my doctor?",
+  "Help me organise my symptoms for an appointment.",
+  "Explain these test results in simple language.",
 ];
 
 /* ------------------------------------------------------------------ */
@@ -153,7 +142,7 @@ const CHAT_STARTERS = [
 
 const GlobalStyles = () => (
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
 
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
@@ -205,72 +194,6 @@ const GlobalStyles = () => (
       letter-spacing: -0.011em;
     }
 
-    /* ---- floating background blobs ---- */
-    .mb-blob {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(70px);
-      opacity: 0.4;
-      pointer-events: none;
-      z-index: 0;
-      animation: mb-float 9s ease-in-out infinite;
-    }
-    @keyframes mb-float {
-      0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
-      50% { transform: translate(20px, -26px) scale(1.12) rotate(8deg); }
-    }
-
-    /* ---- reusable animated gradient text ---- */
-    .mb-gradient-text-anim {
-      background: var(--grad-hero);
-      background-size: 300% 300%;
-      -webkit-background-clip: text; background-clip: text; color: transparent;
-      animation: mb-gradient-move 7s ease infinite;
-      filter: drop-shadow(0 10px 26px rgba(20,184,166,0.22));
-      display: inline-block;
-    }
-    @keyframes mb-gradient-move {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    /* ---- 3D mouse-tilt cards ---- */
-    .mb-tilt { perspective: 1200px; height: 100%; }
-    .mb-tilt-inner {
-      --rx: 0deg; --ry: 0deg; --lift: 0px; --mx: 50%; --my: 50%;
-      transform: translateY(var(--lift)) rotateX(var(--rx)) rotateY(var(--ry));
-      transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease, border-color 0.3s ease;
-      height: 100%;
-      will-change: transform;
-    }
-    .mb-tilt-inner:hover {
-      --lift: -8px;
-      box-shadow: 0 30px 60px -18px rgba(20,184,166,0.28), 0 10px 24px rgba(15,23,42,0.08);
-      border-color: rgba(20,184,166,0.3) !important;
-    }
-    .mb-tilt-inner::after {
-      content: ""; position: absolute; inset: 0; border-radius: inherit;
-      background: radial-gradient(280px circle at var(--mx) var(--my), rgba(20,184,166,0.12), transparent 65%);
-      opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
-    }
-    .mb-tilt-inner:hover::after { opacity: 1; }
-
-    /* ---- nav ---- */
-    .mb-nav {
-      position: sticky; top: 0; z-index: 50;
-      background: rgba(248,250,252,0.82);
-      backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-      border-bottom: 1px solid var(--border);
-      box-shadow: 0 4px 24px rgba(15,23,42,0.04);
-    }
-    .mb-progress {
-      position: sticky; top: 0; z-index: 51;
-      height: 3px;
-      background: var(--grad-1);
-      transform-origin: left;
-      transition: transform 0.1s linear;
-    }
     .mb-navlink {
       background: none; border: none; cursor: pointer; color: var(--text-muted);
       font-size: 0.9rem; font-weight: 600; padding: 0.4rem 0.3rem; transition: color 0.15s ease;
@@ -383,94 +306,6 @@ const GlobalStyles = () => (
     @keyframes mb-spin { to { transform: rotate(360deg); } }
     .mb-avatar-hero:hover { filter: brightness(1.08); transform: scale(1.04) translateY(-2px); }
     .mb-avatar-hero:active { filter: brightness(0.95); transform: scale(0.98); }
-
-    /* ---- hero showcase backdrop: soft color washes on off-white ---- */
-    .mb-hero-dark-wrap {
-      position: relative; z-index: 1; overflow: hidden;
-      background:
-        radial-gradient(ellipse 760px 480px at 22% -6%, rgba(20,184,166,0.12), transparent 60%),
-        radial-gradient(ellipse 640px 460px at 82% 22%, rgba(56,189,248,0.14), transparent 60%),
-        radial-gradient(ellipse 600px 420px at 50% 105%, rgba(11,31,51,0.05), transparent 60%),
-        linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 55%, var(--bg) 100%);
-    }
-    .mb-glass-chip {
-      position: absolute;
-      background: rgba(255,255,255,0.08);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255,255,255,0.18);
-      border-radius: 16px;
-      padding: 0.65rem 1rem;
-      color: #fff;
-      font-size: 0.8rem; font-weight: 700; white-space: nowrap;
-      display: flex; align-items: center; gap: 0.5rem;
-      box-shadow: 0 24px 44px -14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.25);
-      animation: mb-float 8s ease-in-out infinite;
-      z-index: 2;
-    }
-    @media (max-width: 640px) { .mb-glass-chip { display: none; } }
-
-    .mb-hero-grid {
-      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-      flex-wrap: nowrap;
-    }
-    .mb-hero-grid > div:first-child { flex: 1 1 420px; min-width: 0; }
-    .mb-hero-figure {
-      position: relative; z-index: 0;
-      flex: 0 0 auto; width: min(560px, 44vw);
-      cursor: pointer; margin: -2rem -1rem -3rem 0;
-      filter: drop-shadow(0 40px 70px rgba(20,184,166,0.25));
-    }
-    /* ---- wordmark-scale hero title: one huge dominant word, headline as a smaller sub-line ---- */
-    .mb-hero-title {
-      color: var(--text); font-weight: 800; margin: 0.9rem 0 1.1rem;
-      font-size: clamp(4rem, 11vw, 8.5rem);
-      line-height: 0.86; letter-spacing: -0.04em;
-      display: block;
-    }
-    .mb-hero-title-sub {
-      display: block; font-size: clamp(1.5rem, 3vw, 2.1rem); font-weight: 700;
-      letter-spacing: -0.015em; line-height: 1.15; margin-top: 0.5rem;
-    }
-    @media (max-width: 900px) {
-      .mb-hero-title { font-size: clamp(3.2rem, 16vw, 5.5rem); }
-    }
-    .mb-figure-label {
-      position: absolute; top: 4%; left: 50%; transform: translateX(-50%);
-      z-index: 3; display: flex; align-items: center; gap: 0.45rem;
-      background: #FFFFFF;
-      border: 1px solid var(--border);
-      border-radius: 999px; padding: 0.4rem 0.95rem;
-      color: var(--text); font-weight: 800; font-size: 0.82rem;
-      letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap;
-      box-shadow: 0 16px 30px -12px rgba(15,23,42,0.18);
-      animation: mb-float 8s ease-in-out infinite;
-    }
-    .mb-figure-label-dot {
-      width: 7px; height: 7px; border-radius: 50%; background: var(--grad-2);
-      box-shadow: 0 0 10px rgba(20,184,166,0.9);
-    }
-    @media (max-width: 900px) {
-      .mb-hero-grid { flex-direction: column; text-align: center; }
-      .mb-hero-grid > div:first-child { text-align: center; max-width: 100% !important; margin: 0 auto; }
-      .mb-hero-grid > div:first-child p { margin-left: auto; margin-right: auto; }
-      .mb-hero-figure { margin: -1.5rem 0 -2rem; }
-      .mb-figure-label { top: 9%; }
-    }
-
-    /* ---- perspective grid floor (hero backdrop) ---- */
-    .mb-grid-floor {
-      position: absolute; left: 50%; bottom: -30px; width: 160%; height: 280px;
-      transform: translateX(-50%) perspective(600px) rotateX(64deg);
-      background-image:
-        linear-gradient(rgba(11,31,51,0.14) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(11,31,51,0.14) 1px, transparent 1px);
-      background-size: 46px 46px;
-      -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.85), transparent 78%);
-      mask-image: linear-gradient(to top, rgba(0,0,0,0.85), transparent 78%);
-      pointer-events: none;
-      z-index: 0;
-    }
 
     /* ---- mascot life: blinking + talking ---- */
     .mb-eye { transform-box: fill-box; transform-origin: center; animation: mb-blink 4.8s ease-in-out infinite; }
@@ -668,23 +503,170 @@ const GlobalStyles = () => (
       to { transform: translateY(105vh) rotate(540deg); opacity: 0.2; }
     }
 
-    /* ---- stat count ---- */
-    .mb-stat-value { font-size: 2.6rem; font-weight: 800; filter: drop-shadow(0 6px 14px rgba(20,184,166,0.25)); }
 
-    /* ---- radial gauge stat widgets ---- */
-    .mb-gauge-card { text-align: center; }
-    .mb-gauge { position: relative; width: 116px; height: 116px; margin: 0 auto 0.9rem; }
-    .mb-gauge svg { width: 100%; height: 100%; overflow: visible; }
-    .mb-gauge-ring { transition: stroke-dashoffset 1.3s cubic-bezier(0.22, 1, 0.36, 1); filter: drop-shadow(0 0 8px rgba(20,184,166,0.4)); }
-    .mb-gauge-value {
-      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-      font-size: 1.35rem; font-weight: 800; color: var(--text); letter-spacing: -0.02em;
+    /* ================================================================== */
+    /* Clarity design system — warm off-white (60), soft neutrals + navy  */
+    /* text (30), one restrained teal accent (10). Loaded last on purpose */
+    /* so it wins over the older rules above.                              */
+    /* ================================================================== */
+    .mb-root {
+      --primary: #0F766E; --primary-hover: #0B5F59; --primary-soft: #E3F0ED;
+      --secondary: #0F766E; --accent: #B45309;
+      --grad-1: #0F766E; --grad-2: #0F766E;
+      --bg: #FAF8F5; --bg-raised: #F3F0EA; --card: #FFFFFF; --card-solid: #FFFFFF;
+      --text: #0F1B2D; --text-muted: #566175; --text-faint: #6B7587;
+      --border: #E7E2D9; --border-strong: #D6D0C5;
+      --danger: #B42318; --success: #15803D;
+      --font-body: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-head: 'Plus Jakarta Sans', Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg); color: var(--text);
+      font-family: var(--font-body); letter-spacing: 0; line-height: 1.5;
     }
-    .mb-gauge-label { font-size: 0.87rem; margin: 0; }
-    .mb-gauge-source { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.5rem; font-weight: 600; }
-    /* staggered vertical rhythm instead of a rigid aligned grid */
-    .mb-stagger-1 { transform: translateY(1.5rem); }
-    @media (max-width: 700px) { .mb-stagger-1 { transform: none; } }
+    .mb-root button, .mb-root input, .mb-root textarea { font-family: inherit; }
+    .mb-root-chat { height: var(--app-h, 100dvh); }
+    .mb-root :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    .mb-input:focus-visible { outline: none; }
+    .mb-navlink { font-family: var(--font-body); font-weight: 500; }
+
+    /* ---- brand ---- */
+    .mb-brand { display: inline-flex; align-items: center; gap: 0.55rem; }
+    .mb-brand-logo { display: inline-flex; align-items: center; justify-content: center; border-radius: 9px; background: var(--primary); flex-shrink: 0; }
+    .mb-brand-name { font-family: var(--font-head); font-weight: 700; font-size: 1.05rem; letter-spacing: -0.01em; color: var(--text); }
+
+    /* ---- buttons ---- */
+    .mb-btn {
+      background: var(--primary); color: #fff; border: 1px solid var(--primary); border-radius: 12px;
+      padding: 0.7rem 1.2rem; font-size: 0.92rem; font-weight: 600; font-family: var(--font-body);
+      box-shadow: none; transform: none; transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    }
+    .mb-btn:hover { background: var(--primary-hover); border-color: var(--primary-hover); transform: none; box-shadow: none; }
+    .mb-btn:active { transform: scale(0.98); box-shadow: none; }
+    .mb-btn:disabled { opacity: 0.6; cursor: default; }
+    .mb-btn.ghost, .mb-btn.subtle { background: var(--card); color: var(--text); border: 1px solid var(--border-strong); box-shadow: none; backdrop-filter: none; padding: 0.7rem 1.2rem; font-size: 0.92rem; }
+    .mb-btn.ghost:hover, .mb-btn.subtle:hover { background: var(--bg-raised); border-color: var(--border-strong); transform: none; box-shadow: none; }
+    .mb-btn.ghost .mb-ripple, .mb-btn.subtle .mb-ripple { background: rgba(15,27,45,0.1); }
+    .mb-btn-sm { padding: 0.45rem 0.95rem; font-size: 0.85rem; border-radius: 10px; }
+    .mb-ripple { background: rgba(255,255,255,0.3); }
+
+    /* ---- cards ---- */
+    .mb-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 1px 2px rgba(15,27,45,0.04), 0 12px 32px -22px rgba(15,27,45,0.22); }
+    .mb-card.hoverable:hover { transform: none; border-color: var(--border-strong); }
+
+    /* ---- form fields ---- */
+    .mb-field { background: #fff; border: 1px solid var(--border-strong); border-radius: 12px; padding: 0.75rem 0.9rem; font-family: var(--font-body); font-size: 1rem; color: var(--text); }
+    .mb-field::placeholder { color: var(--text-faint); }
+    .mb-field:focus-visible { outline: none; border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(15,118,110,0.16); }
+    .mb-field { min-width: 0; box-sizing: border-box; }
+    .mb-name-row { display: flex; gap: 0.6rem; }
+    .mb-name-row .mb-field { flex: 1 1 0; }
+
+    /* ---- top bar ---- */
+    .mb-chat-topbar { display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 1.1rem; min-height: 56px; border-bottom: 1px solid var(--border); background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; flex-shrink: 0; }
+    .mb-topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 0.3rem; }
+    .mb-topbar-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.88rem; font-weight: 500; padding: 0.45rem 0.7rem; border-radius: 10px; display: inline-flex; align-items: center; gap: 0.35rem; transition: background 0.15s ease, color 0.15s ease; }
+    .mb-topbar-btn:hover { background: rgba(15,27,45,0.06); color: var(--text); }
+    .mb-icon-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s ease, color 0.15s ease; }
+    .mb-icon-btn:hover { background: rgba(15,27,45,0.06); color: var(--text); }
+    .mb-icon-btn.active { color: var(--primary); }
+    .mb-topbar-brand-mobile { display: none; }
+    .mb-sidebar-toggle { color: var(--text-muted); }
+
+    /* ---- sidebar ---- */
+    .mb-sidebar { width: 268px; background: var(--bg-raised); border-right: 1px solid var(--border); }
+    .mb-sidebar-brand { padding: 0.95rem 1rem 0.4rem; font-family: var(--font-head); }
+    .mb-sidebar-newchat { border-radius: 12px; border: 1px solid var(--border-strong); background: var(--card); font-family: var(--font-body); font-weight: 600; font-size: 0.88rem; }
+    .mb-sidebar-newchat:hover { border-color: var(--primary); background: var(--card); color: var(--primary); }
+    .mb-sidebar-item { font-family: var(--font-body); font-size: 0.88rem; border-radius: 10px; }
+    .mb-sidebar-item:hover { background: rgba(15,27,45,0.05); }
+    .mb-sidebar-item.active { background: rgba(15,118,110,0.1); font-weight: 600; }
+    .mb-sidebar-link { font-family: var(--font-body); }
+    .mb-sidebar-footer { font-size: 0.8rem; line-height: 1.5; }
+
+    /* ---- conversation ---- */
+    .mb-chat-messages-full { max-width: 760px; padding: 1.5rem 1.25rem 1rem; gap: 1.6rem; }
+    .mb-chat-input-wrap { max-width: 760px; padding: 0.5rem 1.25rem 1rem; }
+    .mb-msg-row { gap: 0.75rem; align-items: flex-start; animation: mb-msg-in 0.25s ease both; }
+    .mb-bubble { max-width: 100%; border-radius: 0; padding: 0; font-size: 1rem; line-height: 1.7; color: var(--text); }
+    .mb-bubble.assistant { background: none; border: none; box-shadow: none; flex: 1; min-width: 0; padding-top: 0.15rem; }
+    .mb-bubble.user { background: #EDE8DF; color: var(--text); border-radius: 18px 18px 6px 18px; padding: 0.7rem 1rem; max-width: 80%; box-shadow: none; }
+    .mb-bubble-label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 600; text-transform: none; letter-spacing: 0; opacity: 1; color: var(--text-muted); margin-bottom: 0.2rem; }
+    .mb-speak { background: none; border: none; cursor: pointer; color: var(--text-faint); padding: 0.2rem; border-radius: 6px; display: inline-flex; }
+    .mb-speak:hover { color: var(--primary); background: rgba(15,27,45,0.05); }
+    .mb-md ul, .mb-md ol { margin: 0.4rem 0; padding-left: 1.4rem; }
+    .mb-md li { margin: 0.25rem 0; }
+    .mb-md-heading { font-family: var(--font-head); font-size: 1.02rem; font-weight: 700; line-height: 1.4; margin: 0.9rem 0 0.3rem; }
+    .mb-md > .mb-md-heading:first-child { margin-top: 0; }
+    .mb-bubble code { background: rgba(15,27,45,0.06); }
+    .mb-typing-dot { width: 6px; height: 6px; background: var(--text-faint); margin-right: 4px; animation: mb-bounce 1.1s infinite ease-in-out; }
+    .mb-typing-dot:nth-child(2), .mb-typing-dot:nth-child(3) { background: var(--text-faint); }
+    .mb-bubble.assistant[role="status"] { padding-top: 0.6rem; }
+    .mb-error-note { border: 1px solid #F1C9C4; background: #FDF1EF; color: var(--danger); border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.92rem; line-height: 1.5; }
+
+    .mb-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); animation: none; box-shadow: none; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: 0.1rem; }
+    .mb-avatar > svg { width: 24px; height: 24px; }
+    .mb-avatar-lg { width: 56px; height: 56px; margin: 0 auto 1.1rem; }
+    .mb-avatar-lg > svg { width: 42px; height: 42px; }
+
+    /* ---- empty state ---- */
+    .mb-empty { margin: auto; text-align: center; max-width: 640px; width: 100%; padding: 1rem 0; }
+    .mb-empty-hello { color: var(--text-muted); font-size: 0.9rem; margin: 0 0 0.4rem; }
+    .mb-empty-title { font-family: var(--font-head); font-weight: 700; font-size: clamp(1.65rem, 4.5vw, 2.25rem); letter-spacing: -0.02em; line-height: 1.2; margin: 0 0 0.75rem; color: var(--text); }
+    .mb-empty-sub { color: var(--text-muted); font-size: 1rem; line-height: 1.6; max-width: 520px; margin: 0 auto 1.75rem; }
+    .mb-suggest-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; text-align: left; }
+    .mb-suggest { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 0.85rem 1rem; font-size: 0.92rem; line-height: 1.4; color: var(--text); cursor: pointer; text-align: left; font-family: var(--font-body); transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease; }
+    .mb-suggest:hover { border-color: var(--primary); }
+    .mb-suggest:active { transform: scale(0.99); }
+
+    /* ---- composer ---- */
+    .mb-input-row { border: 1px solid var(--border-strong); border-radius: 20px; padding: 0.4rem 0.5rem 0.4rem 0.35rem; gap: 0.15rem; background: var(--card); box-shadow: 0 1px 2px rgba(15,27,45,0.04), 0 8px 24px -14px rgba(15,27,45,0.16); }
+    .mb-input-row:focus-within { border-color: var(--primary); box-shadow: 0 1px 2px rgba(15,27,45,0.04), 0 0 0 3px rgba(15,118,110,0.16); }
+    .mb-input { font-family: var(--font-body); font-size: 1rem; line-height: 1.5; padding: 0.6rem 0.5rem; max-height: 180px; color: var(--text); }
+    .mb-input::placeholder { color: var(--text-faint); }
+    .mb-send { width: 38px; height: 38px; border-radius: 12px; background: var(--primary); box-shadow: none; margin-bottom: 2px; transition: background 0.15s ease, opacity 0.15s ease, transform 0.1s ease; }
+    .mb-send:hover:not(:disabled) { background: var(--primary-hover); transform: none; }
+    .mb-send:active:not(:disabled) { transform: scale(0.95); box-shadow: none; }
+    .mb-send:disabled { opacity: 0.35; }
+    .mb-attach-btn { width: 36px; height: 36px; border-radius: 10px; margin-bottom: 3px; }
+    .mb-attach-btn:hover { background: rgba(15,27,45,0.06); color: var(--primary); }
+    .mb-disclaimer { text-align: center; font-size: 0.76rem; color: var(--text-faint); margin: 0.6rem 0 0; line-height: 1.4; }
+
+    /* ---- dialogs (sign in, about) ---- */
+    .mb-modal-scrim { position: fixed; inset: 0; z-index: 100; background: rgba(15,27,45,0.42); display: flex; align-items: center; justify-content: center; padding: 1rem; animation: mb-fade 0.18s ease both; }
+    .mb-modal { position: relative; background: var(--card); color: var(--text); border-radius: 20px; width: 100%; max-height: calc(var(--app-h, 100dvh) - 2rem); overflow-y: auto; padding: 1.75rem; box-shadow: 0 24px 64px -16px rgba(15,27,45,0.35); animation: mb-pop 0.2s cubic-bezier(0.22, 1, 0.36, 1) both; outline: none; }
+    .mb-modal-sm { max-width: 420px; } .mb-modal-md { max-width: 480px; } .mb-modal-lg { max-width: 560px; }
+    .mb-modal-close { position: absolute; top: 0.85rem; right: 0.85rem; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border: none; background: none; border-radius: 10px; cursor: pointer; color: var(--text-muted); }
+    .mb-modal-close:hover { background: rgba(15,27,45,0.06); color: var(--text); }
+    @keyframes mb-fade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes mb-pop { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+    @keyframes mb-sheet { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+    .mb-auth-title { font-family: var(--font-head); font-weight: 700; font-size: 1.3rem; letter-spacing: -0.01em; margin: 0 0 0.4rem; padding-right: 2rem; }
+    .mb-auth-sub { color: var(--text-muted); font-size: 0.92rem; line-height: 1.55; margin: 0 0 1.2rem; }
+    .mb-auth-divider { display: flex; align-items: center; gap: 0.75rem; color: var(--text-faint); font-size: 0.8rem; margin: 1.1rem 0; }
+    .mb-auth-divider::before, .mb-auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+    .mb-auth-note { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin: 0.6rem 0 0; }
+    .mb-about-lead { font-size: 1rem; line-height: 1.65; margin: 0 0 1rem; }
+    .mb-about-h { font-family: var(--font-head); font-size: 0.95rem; font-weight: 700; margin: 1.25rem 0 0.35rem; }
+    .mb-about-p { font-size: 0.92rem; line-height: 1.65; color: var(--text-muted); margin: 0 0 0.6rem; }
+    .mb-about-p strong { color: var(--text); }
+    .mb-about-list { margin: 0; padding-left: 1.2rem; color: var(--text-muted); font-size: 0.92rem; line-height: 1.65; }
+    .mb-admin-bar { padding: 0.7rem 1.1rem; border-bottom: 1px solid var(--border); background: var(--bg); position: sticky; top: 0; z-index: 5; }
+
+    @media (max-width: 760px) {
+      .mb-topbar-brand-mobile { display: inline-flex; }
+      .mb-chat-topbar { padding: 0.55rem 0.75rem; }
+      .mb-chat-messages-full { padding: 1.1rem 1rem 0.75rem; gap: 1.4rem; }
+      .mb-chat-input-wrap { padding: 0.4rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom)); }
+      .mb-sidebar-scrim.open { background: rgba(15,27,45,0.45); backdrop-filter: none; }
+    }
+    @media (max-width: 560px) {
+      /* Text gets the full width; attach / camera / mic and send share the row below it. */
+      .mb-input-row-tools { flex-wrap: wrap; padding: 0.4rem 0.5rem 0.4rem 0.45rem; }
+      .mb-input-row-tools .mb-input { order: -1; flex: 1 1 100%; }
+      .mb-input-row-tools .mb-send { margin-left: auto; }
+      .mb-suggest-grid { grid-template-columns: 1fr; }
+      .mb-modal-scrim { align-items: flex-end; padding: 0; }
+      .mb-modal { border-radius: 20px 20px 0 0; max-width: none; padding: 1.5rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom)); animation-name: mb-sheet; }
+    }
 
     @media (prefers-reduced-motion: reduce) {
       .mb-root * { animation: none !important; transition: none !important; }
@@ -717,55 +699,17 @@ function RippleButton({ className, children, onClick, ...rest }) {
   );
 }
 
-/* Wraps children in a perspective wrapper and tilts them toward the mouse  */
-/* for a real 3D depth effect; ref forwards to the outer wrapper so callers */
-/* (e.g. IntersectionObserver hooks) can still observe the element.        */
-const TiltCard = React.forwardRef(function TiltCard({ className = "", style, children, ...rest }, outerRef) {
-  const innerRef = useRef(null);
-  const rafRef = useRef(null);
-
-  const handleMove = (e) => {
-    const el = innerRef.current;
-    if (!el) return;
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    const clientX = e.clientX, clientY = e.clientY;
-    rafRef.current = requestAnimationFrame(() => {
-      const rect = el.getBoundingClientRect();
-      const px = (clientX - rect.left) / rect.width;
-      const py = (clientY - rect.top) / rect.height;
-      el.style.setProperty("--rx", `${((0.5 - py) * 10).toFixed(2)}deg`);
-      el.style.setProperty("--ry", `${((px - 0.5) * 10).toFixed(2)}deg`);
-      el.style.setProperty("--mx", `${(px * 100).toFixed(1)}%`);
-      el.style.setProperty("--my", `${(py * 100).toFixed(1)}%`);
-    });
-  };
-  const handleLeave = () => {
-    const el = innerRef.current;
-    if (!el) return;
-    el.style.setProperty("--rx", "0deg");
-    el.style.setProperty("--ry", "0deg");
-  };
-
-  return (
-    <div ref={outerRef} className="mb-tilt" onMouseMove={handleMove} onMouseLeave={handleLeave}>
-      <div ref={innerRef} className={`mb-tilt-inner ${className}`} style={style} {...rest}>
-        {children}
-      </div>
-    </div>
-  );
-});
-
 /* Mood vocabulary Clarity's replies are tagged with (see SYSTEM_PROMPT).   */
 /* Each mood drives the mascot's face, plus a gradient/label for the UI.    */
 const MOOD_META = {
   calm:        { label: "Calm",        grad: "var(--grad-1)", mouth: "M13 25c2.2 2.2 11.8 2.2 14 0", brows: null, wink: false },
   caring:      { label: "Caring",      grad: "var(--grad-1)", mouth: "M13 24.5c2.2 2.6 11.8 2.6 14 0", brows: null, wink: false },
-  concerned:   { label: "Concerned",   grad: "linear-gradient(135deg, #F59E0B, #EA580C)", mouth: "M14 26.5c1.8-1.4 10.2-1.4 12 0", brows: "M11 14.5 15 16.2M29 14.5 25 16.2", wink: false },
-  urgent:      { label: "Urgent",      grad: "linear-gradient(135deg, #EF4444, #B91C1C)", mouth: "M17.2 26a2.8 1.3 0 1 0 5.6 0 2.8 1.3 0 1 0-5.6 0", mouthFill: true, brows: "M10.5 13.2 15.5 16M29.5 13.2 24.5 16", wink: false },
+  concerned:   { label: "Concerned",   grad: "#B45309", mouth: "M14 26.5c1.8-1.4 10.2-1.4 12 0", brows: "M11 14.5 15 16.2M29 14.5 25 16.2", wink: false },
+  urgent:      { label: "Urgent",      grad: "#B42318", mouth: "M17.2 26a2.8 1.3 0 1 0 5.6 0 2.8 1.3 0 1 0-5.6 0", mouthFill: true, brows: "M10.5 13.2 15.5 16M29.5 13.2 24.5 16", wink: false },
   encouraging: { label: "Encouraging", grad: "var(--grad-2)", mouth: "M12 24c2.6 3.4 13.4 3.4 16 0", brows: "M11 15 15.5 13.5M29 15 24.5 13.5", wink: false },
-  celebratory: { label: "Celebratory", grad: "linear-gradient(135deg, #F59E0B, #22C55E)", mouth: "M11.5 23.5c2.8 4 14.2 4 17 0", brows: "M11 14.5 15.5 12.8M29 14.5 24.5 12.8", wink: false },
-  playful:     { label: "Playful",     grad: "linear-gradient(135deg, #2563EB, #A855F7)", mouth: "M13 24.5c2.2 2.6 11.8 2.6 14 0", brows: "M11 15 15.5 13.2", wink: true },
-  somber:      { label: "Somber",      grad: "linear-gradient(135deg, #64748B, #334155)", mouth: "M14.5 26c1.6-1 9.4-1 11 0", brows: "M11.5 15 15 15.6M28.5 15 25 15.6", wink: false },
+  celebratory: { label: "Celebratory", grad: "var(--grad-1)", mouth: "M11.5 23.5c2.8 4 14.2 4 17 0", brows: "M11 14.5 15.5 12.8M29 14.5 24.5 12.8", wink: false },
+  playful:     { label: "Playful",     grad: "var(--grad-1)", mouth: "M13 24.5c2.2 2.6 11.8 2.6 14 0", brows: "M11 15 15.5 13.2", wink: true },
+  somber:      { label: "Somber",      grad: "#475569", mouth: "M14.5 26c1.6-1 9.4-1 11 0", brows: "M11.5 15 15 15.6M28.5 15 25 15.6", wink: false },
 };
 const MOOD_NAMES = Object.keys(MOOD_META);
 
@@ -952,6 +896,12 @@ function renderMarkdownLite(text) {
   };
 
   lines.forEach((line) => {
+    const headingMatch = /^\s{0,3}#{1,4}\s+(.+?)\s*#*\s*$/.exec(line);
+    if (headingMatch) {
+      flushList();
+      blocks.push(<h4 key={`h-${blocks.length}`} className="mb-md-heading">{renderInline(headingMatch[1])}</h4>);
+      return;
+    }
     const bulletMatch = /^\s*[-*]\s+(.+)/.exec(line);
     const numberMatch = /^\s*\d+[.)]\s+(.+)/.exec(line);
     if (bulletMatch) {
@@ -1114,201 +1064,74 @@ function Confetti({ trigger }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* SHARED SCROLL STORE — a single native scroll listener for the whole  */
-/* app (rAF-throttled), fanning out to every component that needs       */
-/* scrollY instead of each one registering its own listener. Feeds the  */
-/* nav progress bar, the hero-to-face cinematic scrub, and the robot's  */
-/* camera — all from one source of truth so they can never drift out    */
-/* of sync with each other.                                             */
+/* SHARED UI — brand mark, modal shell, empty state                     */
 /* ------------------------------------------------------------------ */
-const ScrollStore = (() => {
-  let y = typeof window !== "undefined" ? window.scrollY : 0;
-  const subs = new Set();
-  let ticking = false;
-  const flush = () => {
-    ticking = false;
-    subs.forEach((fn) => fn(y));
-  };
-  const onScroll = () => {
-    y = window.scrollY;
-    if (!ticking) {
-      ticking = true;
-      requestAnimationFrame(flush);
-    }
-  };
-  if (typeof window !== "undefined") {
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
-  }
-  return {
-    get: () => y,
-    subscribe: (fn) => { subs.add(fn); return () => subs.delete(fn); },
-  };
-})();
 
-function useScrollY() {
-  const [y, setY] = useState(ScrollStore.get());
-  useEffect(() => ScrollStore.subscribe(setY), []);
-  return y;
-}
-
-const clamp01 = (n) => Math.max(0, Math.min(1, n));
-
-function useCountUp(target, active) {
-  const [value, setValue] = useState(0);
-  useEffect(() => {
-    if (!active) return;
-    let start = null;
-    const duration = 1200;
-    const step = (ts) => {
-      if (!start) start = ts;
-      const progress = Math.min((ts - start) / duration, 1);
-      setValue(Math.round(target * (1 - Math.pow(1 - progress, 3))));
-      if (progress < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }, [active, target]);
-  return value;
-}
-
-function useInView() {
-  const ref = useRef(null);
-  const [inView, setInView] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setInView(true);
-        obs.disconnect();
-      }
-    }, { threshold: 0.4 });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-  return [ref, inView];
-}
-
-/* Fades + slides a block up into place the first time it scrolls into view — */
-/* used on section headings below the cinematic hero so content keeps        */
-/* arriving continuously rather than just being statically "already there." */
-function Reveal({ children, delay = 0, style, ...rest }) {
-  const [ref, inView] = useInView();
+function BrandMark({ size = 28 }) {
   return (
-    <div
-      ref={ref}
-      style={{
-        opacity: inView ? 1 : 0,
-        transform: inView ? "translateY(0)" : "translateY(22px)",
-        transition: `opacity 0.8s cubic-bezier(0.22,1,0.36,1) ${delay}s, transform 0.8s cubic-bezier(0.22,1,0.36,1) ${delay}s`,
-        ...style,
-      }}
-      {...rest}
-    >
-      {children}
+    <span className="mb-brand">
+      <span className="mb-brand-logo" style={{ width: size, height: size }}><Mascot size={Math.round(size * 0.8)} /></span>
+      <span className="mb-brand-name">Clarity</span>
+    </span>
+  );
+}
+
+/* Accessible dialog: Esc and backdrop close it, Tab stays inside, focus   */
+/* returns to whatever opened it. Becomes a bottom sheet on phones (CSS).   */
+function Modal({ onClose, label, children, size = "md" }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const previous = document.activeElement;
+    const onKey = (e) => {
+      if (e.key === "Escape") { e.stopPropagation(); onClose(); return; }
+      if (e.key !== "Tab" || !ref.current) return;
+      const items = [...ref.current.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), textarea, select, [tabindex]:not([tabindex="-1"])')];
+      if (!items.length) return;
+      const first = items[0], last = items[items.length - 1];
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === ref.current)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", onKey);
+    if (ref.current) ref.current.focus();
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      if (previous && previous.focus) previous.focus();
+    };
+  }, []);
+  return (
+    <div className="mb-modal-scrim" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div ref={ref} className={`mb-modal mb-modal-${size}`} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1}>
+        <button type="button" className="mb-modal-close" onClick={onClose} aria-label="Close"><X size={18} /></button>
+        {children}
+      </div>
     </div>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* SECTIONS                                                             */
-/* ------------------------------------------------------------------ */
-
-function Blobs() {
+function EmptyState({ firstName, onPick }) {
   return (
-    <>
-      <div className="mb-blob" style={{ width: 380, height: 380, top: -100, left: -120, background: "var(--grad-1)" }} />
-      <div className="mb-blob" style={{ width: 280, height: 280, top: 220, right: -90, background: "var(--grad-2)", animationDelay: "-3s" }} />
-      <div className="mb-blob" style={{ width: 240, height: 240, top: 720, left: "40%", background: "linear-gradient(135deg, #F59E0B, #14B8A6)", animationDelay: "-5s" }} />
-      <div className="mb-blob" style={{ width: 260, height: 260, top: 480, left: -60, background: "linear-gradient(135deg, #A855F7, #2563EB)", animationDelay: "-1.5s" }} />
-    </>
-  );
-}
-
-/* A radial gauge — circular progress ring with the percentage centered   */
-/* inside, echoing the reference's dial-style stat widgets instead of a    */
-/* flat number in a box.                                                   */
-function StatCard({ stat, index }) {
-  const [ref, inView] = useInView();
-  const count = useCountUp(stat.value, inView);
-  const r = 48;
-  const circumference = 2 * Math.PI * r;
-  const pct = Math.min(count, 100);
-  const offset = circumference * (1 - pct / 100);
-  const gradId = `mb-gauge-grad-${index}`;
-  return (
-    <TiltCard ref={ref} className={`mb-card mb-gauge-card hoverable mb-stagger-${index % 2}`} style={{ padding: "1.5rem 1.25rem" }}>
-      <div className="mb-gauge">
-        <svg viewBox="0 0 120 120" width="120" height="120">
-          <circle cx="60" cy="60" r={r} fill="none" stroke="rgba(15,23,42,0.08)" strokeWidth="9" />
-          <circle
-            cx="60" cy="60" r={r} fill="none" stroke={`url(#${gradId})`} strokeWidth="9"
-            strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset}
-            transform="rotate(-90 60 60)" className="mb-gauge-ring"
-          />
-          <defs>
-            <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="var(--primary)" />
-              <stop offset="100%" stopColor="var(--secondary)" />
-            </linearGradient>
-          </defs>
-        </svg>
-        <div className="mb-gauge-value">{count}{stat.suffix}</div>
-      </div>
-      <p className="mb-gauge-label">{stat.label}</p>
-      <p className="mb-gauge-source">{stat.source}</p>
-    </TiltCard>
-  );
-}
-
-function StatsSection() {
-  return (
-    <section id="why" style={{ position: "relative", maxWidth: 1000, margin: "0 auto", padding: "3rem 1.25rem", zIndex: 1 }}>
-      <Reveal style={{ maxWidth: 620, margin: "0 auto 2.25rem", textAlign: "center" }}>
-        <h2 style={{ fontSize: "clamp(1.8rem, 3.5vw, 2.5rem)", fontWeight: 800, marginBottom: "0.6rem", letterSpacing: "-0.02em" }}>Why this matters</h2>
-        <p style={{ color: "var(--text-muted)" }}>
-          Anxiety, fear of bad news, and uncertainty about symptoms are the top reasons people delay care — and delay
-          leads to worse outcomes.
-        </p>
-      </Reveal>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "1.1rem" }}>
-        {STATS.map((s, i) => (
-          <StatCard key={s.label} stat={s} index={i} />
+    <div className="mb-empty">
+      <div className="mb-avatar mb-avatar-lg"><Mascot size={48} /></div>
+      {firstName && <p className="mb-empty-hello">Welcome back, {firstName}</p>}
+      <h1 className="mb-empty-title">Let's make sense of your health.</h1>
+      <p className="mb-empty-sub">Ask a health question, understand medical information, or prepare for a conversation with your healthcare professional.</p>
+      <div className="mb-suggest-grid">
+        {CHAT_STARTERS.map((q) => (
+          <button key={q} type="button" className="mb-suggest" onClick={() => onPick(q)}>{q}</button>
         ))}
       </div>
-    </section>
+    </div>
   );
 }
 
-function HowItWorks() {
-  return (
-    <section id="how" style={{ position: "relative", maxWidth: 960, margin: "0 auto", padding: "1rem 1.25rem 3rem", zIndex: 1 }}>
-      <Reveal>
-        <h2 style={{ fontSize: "clamp(1.8rem, 3.5vw, 2.5rem)", fontWeight: 800, marginBottom: "1.75rem", textAlign: "center", letterSpacing: "-0.02em" }}>How MediReach helps</h2>
-      </Reveal>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: "1.25rem" }}>
-        {STEPS.map((s, i) => (
-          <Reveal key={s.title} delay={i * 0.08}>
-            <TiltCard className="mb-card hoverable" style={{ padding: "1.5rem" }}>
-              <div className="mb-icon-badge" style={{ background: s.grad, marginBottom: "0.9rem" }}>
-                <s.icon size={20} />
-              </div>
-              <h3 style={{ fontWeight: 700, fontSize: "1.05rem", marginBottom: "0.5rem" }}>{s.title}</h3>
-              <p style={{ fontSize: "0.88rem", color: "var(--text-muted)" }}>{s.desc}</p>
-            </TiltCard>
-          </Reveal>
-        ))}
-      </div>
-    </section>
-  );
-}
+const DISCLAIMER = "Clarity shares general health information, not medical advice. In an emergency, call your local emergency number.";
 
 /* ------------------------------------------------------------------ */
 /* AUTH — sign in / sign up via Supabase, so history can be saved      */
 /* ------------------------------------------------------------------ */
 
-function AuthPanel() {
-  const [mode, setMode] = useState("signin");
+function AuthPanel({ initialMode = "signin", pendingText = null }) {
+  const [mode, setMode] = useState(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -1317,18 +1140,6 @@ function AuthPanel() {
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
   const [linkExpired, setLinkExpired] = useState(RECOVERY_LINK_EXPIRED);
-
-  if (!SUPABASE_READY) {
-    return (
-      <div className="mb-card" style={{ padding: "1.75rem", textAlign: "center", maxWidth: 440, margin: "0 auto" }}>
-        <h3 style={{ fontWeight: 700, marginBottom: "0.5rem" }}>Sign-in isn't set up yet</h3>
-        <p style={{ fontSize: "0.88rem", color: "var(--text-muted)" }}>
-          Add your Supabase project URL and anon key to <code>SUPABASE_URL</code> / <code>SUPABASE_ANON_KEY</code> near
-          the top of this file to enable accounts and saved chat history.
-        </p>
-      </div>
-    );
-  }
 
   const submit = async (e) => {
     e.preventDefault();
@@ -1362,35 +1173,36 @@ function AuthPanel() {
   };
 
   return (
-    <div className="mb-card mb-glass" style={{ padding: "2rem", maxWidth: 420, margin: "0 auto", boxShadow: "0 20px 50px rgba(15,23,42,0.1)" }}>
-      <div className="mb-avatar" style={{ margin: "0 auto 1rem" }}><Mascot size={48} /></div>
-      <h3 style={{ textAlign: "center", fontWeight: 800, fontSize: "1.2rem", marginBottom: "0.35rem" }}>
-        {mode === "signup" ? "Create your account" : mode === "forgot" ? "Reset your password" : "Welcome back"}
-      </h3>
-      <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.86rem", marginBottom: "1.4rem" }}>
+    <div className="mb-auth">
+      <h2 className="mb-auth-title">
+        {mode === "signup" ? "Create your account" : mode === "forgot" ? "Reset your password" : "Sign in to Clarity"}
+      </h2>
+      <p className="mb-auth-sub">
         {mode === "forgot"
           ? "Enter the email you signed up with and we'll send you a link to choose a new password."
-          : "Sign in so Clarity can remember your conversations across visits."}
+          : pendingText
+            ? "Sign in to send your message. Clarity saves your conversations so you can pick up where you left off."
+            : "Clarity saves your conversations so you can pick up where you left off."}
       </p>
       {linkExpired && mode !== "forgot" && (
-        <p style={{ color: "var(--danger)", fontSize: "0.82rem", margin: "0 0 0.9rem", textAlign: "center" }}>
+        <p role="alert" style={{ color: "var(--danger)", fontSize: "0.85rem", margin: "0 0 0.9rem" }}>
           That reset link has expired or was already used. Request a new one below.
         </p>
       )}
       <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
         {mode === "signup" && (
-          <div style={{ display: "flex", gap: "0.6rem" }}>
-            <input className="mb-field" type="text" required autoComplete="given-name" placeholder="First name"
+          <div className="mb-name-row">
+            <input className="mb-field" type="text" required autoComplete="given-name" placeholder="First name" aria-label="First name"
               value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-            <input className="mb-field" type="text" required autoComplete="family-name" placeholder="Last name"
+            <input className="mb-field" type="text" required autoComplete="family-name" placeholder="Last name" aria-label="Last name"
               value={lastName} onChange={(e) => setLastName(e.target.value)} />
           </div>
         )}
-        <input className="mb-field" type="email" required autoComplete="email" placeholder="Email"
+        <input className="mb-field" type="email" required autoComplete="email" placeholder="Email" aria-label="Email"
           value={email} onChange={(e) => setEmail(e.target.value)} />
         {mode !== "forgot" && (
           <input className="mb-field" type="password" required minLength={6}
-            autoComplete={mode === "signup" ? "new-password" : "current-password"} placeholder="Password (min. 6 characters)"
+            autoComplete={mode === "signup" ? "new-password" : "current-password"} placeholder="Password (min. 6 characters)" aria-label="Password"
             value={password} onChange={(e) => setPassword(e.target.value)} />
         )}
         {mode === "signin" && (
@@ -1399,15 +1211,16 @@ function AuthPanel() {
             Forgot password?
           </button>
         )}
-        {error && <p style={{ color: "var(--danger)", fontSize: "0.82rem", margin: 0 }}>{error}</p>}
-        {notice && <p style={{ color: "var(--success)", fontSize: "0.82rem", margin: 0 }}>{notice}</p>}
-        <RippleButton type="submit" className="mb-btn" disabled={loading} style={{ justifyContent: "center", opacity: loading ? 0.7 : 1 }}>
+        {error && <p role="alert" style={{ color: "var(--danger)", fontSize: "0.85rem", margin: 0 }}>{error}</p>}
+        {notice && <p role="status" style={{ color: "var(--success)", fontSize: "0.85rem", margin: 0 }}>{notice}</p>}
+        <RippleButton type="submit" className="mb-btn" disabled={loading} style={{ justifyContent: "center", opacity: loading ? 0.7 : 1, width: "100%" }}>
           {loading ? "Please wait…" : mode === "signup" ? "Sign up" : mode === "forgot" ? "Send reset link" : "Sign in"}
         </RippleButton>
       </form>
       <button
         className="mb-navlink"
         style={{ display: "block", margin: "1rem auto 0" }}
+        type="button"
         onClick={() => { setMode((m) => (m === "signin" ? "signup" : "signin")); setError(null); setNotice(null); setLinkExpired(false); }}
       >
         {mode === "signin" ? "New here? Create an account" : mode === "forgot" ? "Back to sign in" : "Already have an account? Sign in"}
@@ -1460,6 +1273,116 @@ function ResetPasswordModal({ onDone }) {
             <button className="mb-navlink" style={{ display: "block", margin: "0.9rem auto 0", fontSize: "0.8rem" }} onClick={onDone}>Skip for now</button>
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+function AuthDialog({ initialMode, pendingText, onClose, onGuest, guestLoading, guestError }) {
+  return (
+    <Modal onClose={onClose} label="Sign in to Clarity" size="sm">
+      <AuthPanel initialMode={initialMode} pendingText={pendingText} />
+      <div className="mb-auth-divider"><span>or</span></div>
+      <button type="button" className="mb-btn ghost" style={{ width: "100%", justifyContent: "center" }} onClick={onGuest} disabled={guestLoading}>
+        {guestLoading ? "Starting…" : "Continue as guest"}
+      </button>
+      <p className="mb-auth-note">Guest chats are saved, but not linked to an email.</p>
+      {guestError && <p role="alert" style={{ textAlign: "center", color: "var(--danger)", fontSize: "0.85rem", marginTop: "0.5rem" }}>Couldn't start a guest session: {guestError}</p>}
+    </Modal>
+  );
+}
+
+function AboutPanel({ onClose }) {
+  return (
+    <Modal onClose={onClose} label="About Clarity" size="lg">
+      <h2 className="mb-auth-title" style={{ marginBottom: "0.6rem" }}>About Clarity</h2>
+      <p className="mb-about-lead">
+        Clarity is an AI-powered health information assistant from MediReach. It's designed to help people understand
+        medical information and prepare for conversations with healthcare professionals.
+      </p>
+
+      <h3 className="mb-about-h">What Clarity is for</h3>
+      <ul className="mb-about-list">
+        <li>Describing how you're feeling, even when you don't have the right words.</li>
+        <li>Explaining medical terms and test results in plain, judgment-free language.</li>
+        <li>Working out whether, and how soon, it's worth seeing someone.</li>
+      </ul>
+
+      <h3 className="mb-about-h">What it isn't</h3>
+      <p className="mb-about-p">
+        Clarity gives general medical information and encourages you toward professional care. It does not diagnose
+        conditions, prescribe treatment, or replace a licensed clinician.
+      </p>
+      <p className="mb-about-p">
+        <strong>In an emergency,</strong> call your local emergency number right away. <strong>In an emotional crisis or
+        if you're thinking about suicide,</strong> in the US you can call or text 988 (Suicide &amp; Crisis Lifeline) any time.
+      </p>
+
+      <h3 className="mb-about-h">Why it exists</h3>
+      <p className="mb-about-p">
+        Most people don't skip the doctor because they don't care. They skip it because healthcare feels confusing.
+        In PatientPoint's surveys of U.S. adults, 40% had put off care because of appointment anxiety (2023), and 58% said
+        fear of bad news was their main worry (2024).
+      </p>
+
+      <h3 className="mb-about-h">Who's behind it</h3>
+      <p className="mb-about-p">
+        MediReach was started by {STUDENT_NAME}, who is in Year 12 at Cranleigh Abu Dhabi and wants to become an
+        ophthalmologist. It's a young project, and he'll keep building it while he works toward becoming a doctor.
+      </p>
+
+      <button type="button" className="mb-btn" style={{ width: "100%", justifyContent: "center", marginTop: "1.25rem" }} onClick={onClose}>
+        Back to the conversation
+      </button>
+    </Modal>
+  );
+}
+
+/* What a visitor sees before signing in: the real chat screen. Writing or   */
+/* tapping a suggestion opens sign-in, then their message is sent for them.  */
+function SignedOutChat({ onRequireAuth, onOpenAbout }) {
+  const [text, setText] = useState("");
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }, [text]);
+  const submit = (value) => {
+    const t = (typeof value === "string" ? value : text).trim();
+    if (t) onRequireAuth("signin", t);
+  };
+  return (
+    <div className="mb-chat-app">
+      <div className="mb-chat-main">
+        <header className="mb-chat-topbar">
+          <BrandMark />
+          <div className="mb-topbar-actions">
+            <button type="button" className="mb-topbar-btn" onClick={onOpenAbout}>About</button>
+            <button type="button" className="mb-topbar-btn" onClick={() => onRequireAuth("signin", null)}>Sign in</button>
+            <button type="button" className="mb-btn mb-btn-sm" onClick={() => onRequireAuth("signup", null)}>Sign up</button>
+          </div>
+        </header>
+        <div className="mb-chat-messages-full">
+          <EmptyState onPick={submit} />
+        </div>
+        <div className="mb-chat-input-wrap">
+          <form className="mb-input-row" onSubmit={(e) => { e.preventDefault(); submit(); }}>
+            <textarea
+              ref={ref}
+              className="mb-input"
+              rows={1}
+              aria-label="Message Clarity"
+              placeholder="Ask Clarity a health question…"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
+            />
+            <button type="submit" className="mb-send" disabled={!text.trim()} aria-label="Send message"><Send size={16} /></button>
+          </form>
+          <p className="mb-disclaimer">{DISCLAIMER}</p>
+        </div>
       </div>
     </div>
   );
@@ -1645,7 +1568,7 @@ function FeedbackPrompt({ session, conversationId, onDone }) {
   );
 }
 
-function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin }) {
+function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin, initialPrompt, onInitialPromptUsed }) {
   const [conversations, setConversations] = useState([]);
   const [conversationsLoading, setConversationsLoading] = useState(!!(SUPABASE_READY && session));
   const [activeId, setActiveId] = useState(null);
@@ -2116,15 +2039,21 @@ function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin }) {
     if (activeId === id) startNewChat();
   };
 
+  // A message typed before signing in is sent for the visitor once their chats have loaded.
+  const initialSentRef = useRef(false);
+  useEffect(() => {
+    if (!initialPrompt || initialSentRef.current || conversationsLoading) return;
+    initialSentRef.current = true;
+    if (onInitialPromptUsed) onInitialPromptUsed();
+    sendMessage(initialPrompt);
+  }, [initialPrompt, conversationsLoading]);
+
   return (
     <div className="mb-chat-app">
       <div className={`mb-sidebar-scrim ${sidebarOpen ? "open" : ""}`} onClick={() => setSidebarOpen(false)} />
       <aside className={`mb-sidebar ${sidebarOpen ? "open" : ""}`}>
-        <button className="mb-sidebar-brand" onClick={startNewChat} title="New chat">
-          <span style={{ width: 26, height: 26, borderRadius: 8, background: "var(--grad-1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Mascot size={22} />
-          </span>
-          MediReach
+        <button className="mb-sidebar-brand" onClick={startNewChat} title="New chat" aria-label="Clarity — start a new chat">
+          <BrandMark />
         </button>
         {SUPABASE_READY && session ? (
           <>
@@ -2145,10 +2074,11 @@ function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin }) {
                 </button>
               ))}
             </div>
-            <div className="mb-sidebar-links">
-              <button className="mb-sidebar-link" onClick={onGoAbout}>About us</button>
-              {onGoAdmin && <button className="mb-sidebar-link" onClick={onGoAdmin}>Admin gallery</button>}
-            </div>
+            {onGoAdmin && (
+              <div className="mb-sidebar-links">
+                <button className="mb-sidebar-link" onClick={onGoAdmin}>Admin gallery</button>
+              </div>
+            )}
             <div className="mb-sidebar-footer">
               {session.user.is_anonymous ? (
                 <>
@@ -2175,10 +2105,11 @@ function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin }) {
                 Conversation history isn't available right now.
               </p>
             </div>
-            <div className="mb-sidebar-links">
-              <button className="mb-sidebar-link" onClick={onGoAbout}>About us</button>
-              {onGoAdmin && <button className="mb-sidebar-link" onClick={onGoAdmin}>Admin gallery</button>}
-            </div>
+            {onGoAdmin && (
+              <div className="mb-sidebar-links">
+                <button className="mb-sidebar-link" onClick={onGoAdmin}>Admin gallery</button>
+              </div>
+            )}
           </>
         )}
       </aside>
@@ -2187,66 +2118,59 @@ function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin }) {
 
       <div className="mb-chat-main">
         <Confetti trigger={celebrate} />
-        <div className="mb-chat-topbar">
+        <header className="mb-chat-topbar">
           <button className="mb-sidebar-toggle" onClick={() => setSidebarOpen(true)} aria-label="Open conversations"><Menu size={20} /></button>
-          <span style={{ width: 8, height: 8, borderRadius: "50%", background: MOOD_META[lastAssistantMood].grad, display: "inline-block" }} />
-          <span style={{ fontSize: "0.85rem", fontWeight: 700 }}>
-            {firstName ? `Welcome back, ${firstName}` : "Clarity"}
-          </span>
-          {speechSupported && (
-            <button
-              onClick={() => setSpeechOn((v) => !v)}
-              aria-label={speechOn ? "Turn off spoken replies" : "Let Clarity speak her replies aloud"}
-              aria-pressed={speechOn}
-              title={speechOn ? "Clarity speaks her replies — click to mute" : "Let Clarity speak her replies aloud"}
-              style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: speechOn ? "var(--primary)" : "var(--text-muted)", display: "flex", alignItems: "center", padding: "0.25rem", borderRadius: 8, transition: "background 0.15s ease, color 0.15s ease" }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
-            >
-              {speechOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
-            </button>
-          )}
-        </div>
+          <span className="mb-topbar-brand-mobile"><BrandMark /></span>
+          <div className="mb-topbar-actions">
+            {speechSupported && (
+              <button
+                type="button"
+                className={`mb-icon-btn${speechOn ? " active" : ""}`}
+                onClick={() => setSpeechOn((v) => !v)}
+                aria-label={speechOn ? "Turn off spoken replies" : "Let Clarity read replies aloud"}
+                aria-pressed={speechOn}
+                title={speechOn ? "Spoken replies on — click to mute" : "Read replies aloud"}
+              >
+                {speechOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
+              </button>
+            )}
+            <button type="button" className="mb-topbar-btn" onClick={onGoAbout}>About</button>
+          </div>
+        </header>
 
-        <div className="mb-chat-messages-full" ref={scrollRef}>
+        <div className="mb-chat-messages-full" ref={scrollRef} role="log" aria-label="Conversation with Clarity">
           {messagesLoading && (
             <div style={{ margin: "auto", textAlign: "center", color: "var(--text-muted)", fontSize: "0.86rem" }}>Loading conversation…</div>
           )}
-          {!messagesLoading && messages.length === 0 && !loading && (
-            <div style={{ margin: "auto", textAlign: "center", color: "var(--text-muted)", maxWidth: 380 }}>
-              <div className="mb-avatar" style={{ margin: "0 auto 0.9rem" }}><Mascot size={48} /></div>
-              <p style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text)" }}>{firstName ? `Hi ${firstName}, I'm Clarity 👋` : "Hi, I'm Clarity 👋"}</p>
-              <p style={{ fontSize: "0.88rem", marginTop: "0.3rem" }}>Whatever's on your mind — a symptom, a worry, or just not knowing where to start.</p>
-              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center", marginTop: "1.1rem" }}>
-                {CHAT_STARTERS.map((s) => (
-                  <button key={s} className="mb-chip" onClick={() => sendMessage(s)}>{s}</button>
-                ))}
-              </div>
-            </div>
+          {!messagesLoading && messages.length === 0 && !loading && !error && (
+            <EmptyState firstName={firstName} onPick={sendMessage} />
           )}
           {!messagesLoading && messages.map((m, i) => (
             <div key={i} className={`mb-msg-row ${m.role}`}>
               {m.role === "assistant" && <div className="mb-avatar" style={{ background: MOOD_META[m.mood || "calm"].grad }}><Mascot size={48} mood={m.mood || "calm"} talking={speakingIndex === i} /></div>}
               <div className={`mb-bubble ${m.role}`}>
-                <span className="mb-bubble-label">
-                  {m.role === "user" ? "You" : `Clarity${m.mood && m.mood !== "calm" ? ` · ${MOOD_META[m.mood].label}` : ""}`}
-                  {m.role === "assistant" && speechSupported && m.content && (
-                    <button
-                      onClick={() => toggleSpeak(m.content, i)}
-                      aria-label={speakingIndex === i ? "Stop reading this reply aloud" : "Read this reply aloud"}
-                      title={speakingIndex === i ? "Stop reading aloud" : "Read aloud"}
-                      style={{ background: "none", border: "none", cursor: "pointer", color: speakingIndex === i ? "var(--primary)" : "var(--text-muted)", padding: 0, marginLeft: 6, display: "inline-flex", verticalAlign: "middle" }}
-                    >
-                      {speakingIndex === i ? <VolumeX size={12} /> : <Volume2 size={12} />}
-                    </button>
-                  )}
-                </span>
+                {m.role === "assistant" && (
+                  <span className="mb-bubble-label">
+                    Clarity
+                    {speechSupported && m.content && (
+                      <button
+                        type="button"
+                        className="mb-speak"
+                        onClick={() => toggleSpeak(m.content, i)}
+                        aria-label={speakingIndex === i ? "Stop reading this reply aloud" : "Read this reply aloud"}
+                        title={speakingIndex === i ? "Stop reading aloud" : "Read aloud"}
+                      >
+                        {speakingIndex === i ? <VolumeX size={13} /> : <Volume2 size={13} />}
+                      </button>
+                    )}
+                  </span>
+                )}
                 {m.attachments && m.attachments.length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: m.content ? "0.5rem" : 0 }}>
                     {m.attachments.map((a) => <AttachmentThumb key={a.id} attachment={a} size={84} />)}
                   </div>
                 )}
-                {m.content && <div dir={isRTLText(m.content) ? "rtl" : "ltr"}>{renderMarkdownLite(m.content)}</div>}
+                {m.content && <div className="mb-md" dir={isRTLText(m.content) ? "rtl" : "ltr"}>{renderMarkdownLite(m.content)}</div>}
               </div>
             </div>
           ))}
@@ -2256,12 +2180,12 @@ function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin }) {
           {loading && (
             <div className="mb-msg-row assistant">
               <div className="mb-avatar"><Mascot size={48} talking /></div>
-              <div className="mb-bubble assistant">
+              <div className="mb-bubble assistant" role="status" aria-label="Clarity is thinking">
                 <span className="mb-typing-dot" /><span className="mb-typing-dot" /><span className="mb-typing-dot" />
               </div>
             </div>
           )}
-          {error && <div className="mb-bubble assistant" style={{ background: "rgba(248,113,113,0.1)", borderColor: "rgba(248,113,113,0.3)", color: "var(--danger)" }}>{error}</div>}
+          {error && <div className="mb-error-note" role="alert">{error}</div>}
         </div>
 
         <div className="mb-chat-input-wrap">
@@ -2275,7 +2199,7 @@ function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin }) {
           {attachError && <p style={{ color: "var(--danger)", fontSize: "0.78rem", padding: "0 0.2rem 0.5rem", margin: 0 }}>{attachError}</p>}
           {micError && <p style={{ color: "var(--danger)", fontSize: "0.78rem", padding: "0 0.2rem 0.5rem", margin: 0 }}>{micError}</p>}
           {listening && !micError && <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", padding: "0 0.2rem 0.5rem", margin: 0 }}>Listening… tap the mic again to stop.</p>}
-          <form className="mb-input-row" onSubmit={handleSubmit}>
+          <form className="mb-input-row mb-input-row-tools" onSubmit={handleSubmit}>
             <input type="file" ref={fileInputRef} accept="image/*,application/pdf" multiple style={{ display: "none" }} onChange={handleFilesSelected} />
             <input type="file" ref={cameraInputRef} accept="image/*" capture="environment" style={{ display: "none" }} onChange={handleFilesSelected} />
             <button type="button" className="mb-attach-btn" onClick={() => fileInputRef.current?.click()} aria-label="Attach image or file" title="Attach image or file">
@@ -2294,7 +2218,8 @@ function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin }) {
               className="mb-input"
               rows={1}
               dir={isRTLText(input) ? "rtl" : "ltr"}
-              placeholder="Message Clarity…"
+              aria-label="Message Clarity"
+              placeholder="Ask Clarity a health question…"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -2304,112 +2229,12 @@ function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin }) {
                 }
               }}
             />
-            <button type="submit" className="mb-send" disabled={loading || (!input.trim() && attachments.length === 0)} aria-label="Send">
+            <button type="submit" className="mb-send" disabled={loading || (!input.trim() && attachments.length === 0)} aria-label="Send message">
               <Send size={16} />
             </button>
           </form>
+          <p className="mb-disclaimer">{DISCLAIMER}</p>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function SafetySection() {
-  return (
-    <section style={{ position: "relative", maxWidth: 740, margin: "0 auto", padding: "1rem 1.25rem 3rem", zIndex: 1 }}>
-      <Reveal>
-        <div className="mb-card" style={{ padding: "1.6rem", background: "linear-gradient(135deg, rgba(245,158,11,0.1), rgba(255,255,255,0.03))", borderColor: "rgba(245,158,11,0.3)" }}>
-          <div style={{ display: "flex", gap: "0.7rem", alignItems: "flex-start" }}>
-            <div className="mb-icon-badge" style={{ background: "var(--accent)" }}>
-              <ShieldCheck size={20} />
-            </div>
-            <div>
-              <h3 style={{ fontWeight: 700, marginBottom: "0.5rem" }}>What MediReach is — and isn't</h3>
-              <p style={{ fontSize: "0.9rem", marginBottom: "0.6rem" }}>
-                Clarity gives general medical information and encourages you toward professional care. It does not
-                diagnose conditions, prescribe treatment, or replace a licensed clinician.
-              </p>
-              <p style={{ fontSize: "0.9rem" }}>
-                <strong>In an emergency,</strong> call your local emergency number right away. <strong>In an emotional
-                crisis or if you're thinking about suicide,</strong> in the US you can call or text 988 (Suicide &
-                Crisis Lifeline) any time.
-              </p>
-            </div>
-          </div>
-        </div>
-      </Reveal>
-    </section>
-  );
-}
-
-const ABOUT_CARDS = [
-  {
-    title: "Who I am",
-    body: "I'm 16, in Year 12 at Cranleigh Abu Dhabi, and genuinely obsessed with medicine — especially eyes. I want to become an ophthalmologist one day.",
-  },
-  {
-    title: "Why I started MediReach",
-    body: "Most people don't skip the doctor because they don't care. They skip it because healthcare feels confusing. Clarity explains things simply, honestly, and always points you toward real care.",
-  },
-  {
-    title: "Where this is going",
-    body: "MediReach is just getting started. I'll keep building it for as long as I'm working toward becoming a doctor myself.",
-  },
-  {
-    title: "Sources",
-    body: "PatientPoint, 2023 & 2024 Patient Confidence Index (surveys of 2,000 U.S. adults).",
-  },
-];
-
-function AboutUsPage({ onGoToChat, signedIn }) {
-  return (
-    <div style={{ position: "relative", zIndex: 1 }}>
-    <div style={{ maxWidth: 860, margin: "0 auto", padding: "3rem 1.25rem 1rem" }}>
-      <p style={{ textAlign: "center", fontWeight: 700, color: "var(--primary)", fontSize: "0.8rem", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.6rem" }}>About MediReach</p>
-      <h1 style={{ fontSize: "clamp(1.8rem, 4.5vw, 2.6rem)", fontWeight: 800, textAlign: "center", letterSpacing: "-0.02em", marginBottom: "0.7rem" }}>
-        Healthcare questions, <span className="mb-gradient-text-anim">without the dread.</span>
-      </h1>
-      <p style={{ textAlign: "center", color: "var(--text-muted)", maxWidth: 560, margin: "0 auto 2.5rem", lineHeight: 1.6 }}>
-        MediReach closes the gap between people and the healthcare they're putting off. Clarity, its AI companion,
-        meets you in the moment before the appointment — reassuring where it can be, direct where it has to be.
-      </p>
-      <div className="mb-avatar-hero" style={{ background: "var(--grad-1)" }}>
-        <span style={{ color: "#fff", fontWeight: 800, fontSize: "2.2rem", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>AA</span>
-      </div>
-      <h1 style={{ fontSize: "clamp(1.8rem, 4.5vw, 2.6rem)", fontWeight: 800, textAlign: "center", marginBottom: "0.3rem" }}>
-        Ali Al Saad
-      </h1>
-      <p style={{ textAlign: "center", color: "var(--text-muted)", fontWeight: 600, marginBottom: "2.25rem" }}>
-        Founder & CEO, MediReach · Year 12, Cranleigh Abu Dhabi
-      </p>
-
-      <TiltCard className="mb-card hoverable" style={{ padding: "1.75rem", marginBottom: "1.25rem" }}>
-        <Quote size={22} color="var(--primary)" style={{ marginBottom: "0.7rem" }} />
-        <p style={{ fontSize: "1.05rem", fontWeight: 600, lineHeight: 1.6 }}>
-          I don't want anyone to put off understanding their own body just because medicine feels like it wasn't built for them to understand it.
-        </p>
-      </TiltCard>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.1rem", marginBottom: "2rem" }}>
-        {ABOUT_CARDS.map((c) => (
-          <TiltCard key={c.title} className="mb-card hoverable" style={{ padding: "1.5rem" }}>
-            <h2 style={{ fontSize: "1.05rem", fontWeight: 800, marginBottom: "0.6rem" }}>{c.title}</h2>
-            <p style={{ fontSize: "0.9rem", lineHeight: 1.6, color: c.title === "Sources" ? "var(--text-muted)" : "var(--text)" }}>{c.body}</p>
-          </TiltCard>
-        ))}
-      </div>
-
-    </div>
-
-      <StatsSection />
-      <HowItWorks />
-      <SafetySection />
-
-      <div style={{ textAlign: "center", padding: "0 1.25rem 4rem" }}>
-        <p style={{ fontWeight: 700, marginBottom: "1.25rem" }}>— Ali Al Saad, Founder & CEO</p>
-        <RippleButton className="mb-btn" onClick={onGoToChat}>
-          <MessageCircle size={17} /> {signedIn ? "Back to Clarity" : "Talk to Clarity"}
-        </RippleButton>
       </div>
     </div>
   );
@@ -2540,55 +2365,22 @@ function AdminGallery({ isAdmin }) {
 /* APP SHELL                                                            */
 /* ------------------------------------------------------------------ */
 
-const NAV_LINKS = [
-  { id: "chat", label: "Chat with Clarity", type: "page" },
-  { id: "about", label: "About Us", type: "page" },
-];
-
-function ChatPage({ session, sessionLoading, onSignOut, onGuest, guestLoading, guestError, onGoAbout, onGoAdmin }) {
+function ChatPage({ session, sessionLoading, onSignOut, onRequireAuth, onOpenAbout, onGoAdmin, initialPrompt, onInitialPromptUsed }) {
   if (sessionLoading) {
     return (
-      <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>Loading…</p>
+      <div className="mb-chat-app" style={{ alignItems: "center", justifyContent: "center" }}>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }} role="status">Loading…</p>
       </div>
     );
   }
   if (session || !SUPABASE_READY) {
-    return <ChatWorkspace session={session} onSignOut={onSignOut} onGoAbout={onGoAbout} onGoAdmin={onGoAdmin} />;
+    return <ChatWorkspace session={session} onSignOut={onSignOut} onGoAbout={onOpenAbout} onGoAdmin={onGoAdmin} initialPrompt={initialPrompt} onInitialPromptUsed={onInitialPromptUsed} />;
   }
-  return (
-    <div style={{ position: "relative", zIndex: 1, minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem 1.25rem 1.5rem" }}>
-      <div style={{ width: "100%", maxWidth: 420, margin: "auto 0" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.6rem", marginBottom: "1.4rem" }}>
-          <span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--grad-1)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 14px -4px rgba(20,184,166,0.5), inset 0 1px 0 rgba(255,255,255,0.35)" }}>
-            <Mascot size={28} />
-          </span>
-          <span style={{ fontWeight: 800, fontSize: "1.3rem", letterSpacing: "-0.01em", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>MediReach</span>
-        </div>
-        <AuthPanel />
-        <p style={{ textAlign: "center", marginTop: "1.25rem" }}>
-          <button className="mb-navlink" onClick={onGuest} disabled={guestLoading}>
-            {guestLoading ? "Starting…" : "Continue as guest — not linked to an email, but still saved"}
-          </button>
-        </p>
-        {guestError && (
-          <p style={{ textAlign: "center", color: "var(--danger)", fontSize: "0.82rem", marginTop: "0.6rem" }}>
-            Couldn't start a guest session: {guestError}
-          </p>
-        )}
-      </div>
-      <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", textAlign: "center", marginTop: "2rem" }}>
-        <button className="mb-navlink" style={{ padding: 0, fontSize: "0.78rem", display: "inline" }} onClick={onGoAbout}>About us</button>
-        {" · "}Not a substitute for professional medical advice
-      </p>
-    </div>
-  );
+  return <SignedOutChat onRequireAuth={onRequireAuth} onOpenAbout={onOpenAbout} />;
 }
 
 function App() {
   const [page, setPage] = useState("chat");
-  const [menuOpen, setMenuOpen] = useState(false);
-  const scrollY = useScrollY();
   const [session, setSession] = useState(null);
   const [sessionLoading, setSessionLoading] = useState(SUPABASE_READY);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -2639,30 +2431,43 @@ function App() {
     setMenuOpen(false);
   };
 
-  const scrollPct = clamp01(scrollY / ((document.documentElement.scrollHeight - window.innerHeight) || 1));
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const [authDialog, setAuthDialog] = useState(null);       // { mode, pending } while sign-in is open
+  const [pendingPrompt, setPendingPrompt] = useState(null); // message to send once the visitor is signed in
 
-  const goHome = () => {
-    setPage("chat");
-    setMenuOpen(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  // Sign-in succeeded: close the dialog and hand any unsent message to the chat.
+  useEffect(() => {
+    if (session && authDialog) {
+      setPendingPrompt(authDialog.pending || null);
+      setAuthDialog(null);
+    }
+  }, [session, authDialog]);
 
-  const immersiveChat = page === "chat" && !sessionLoading && (session || !SUPABASE_READY);
+  // Keep the layout the height of the *visible* screen so the on-screen keyboard
+  // never covers the composer on phones.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const root = document.documentElement;
+    const update = () => {
+      root.style.setProperty("--app-h", `${Math.round(vv.height)}px`);
+      if (vv.height < window.innerHeight - 80) window.scrollTo(0, 0);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      root.style.removeProperty("--app-h");
+    };
+  }, []);
 
-  const goToChat = () => {
-    setPage("chat");
-    setMenuOpen(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const navigate = (link) => {
-    setMenuOpen(false);
-    setPage(link.id);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const goHome = () => { setPage("chat"); window.scrollTo(0, 0); };
+  const requireAuth = (mode, pending) => setAuthDialog({ mode, pending: pending || null });
 
   return (
-    <div className={`mb-root ${immersiveChat ? "mb-root-chat" : ""}`}>
+    <div className={`mb-root ${page === "chat" ? "mb-root-chat" : ""}`}>
       <GlobalStyles />
       {recovering && session && (
         <ResetPasswordModal onDone={() => {
@@ -2671,94 +2476,39 @@ function App() {
         }} />
       )}
 
-      {page !== "chat" && <nav className="mb-nav">
-        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0.95rem 1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
-          <button onClick={goHome} style={{ background: "none", border: "none", fontSize: "1.05rem", fontWeight: 800, color: "var(--text)", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.6rem", fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.01em" }}>
-            <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--grad-1)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 14px -4px rgba(20,184,166,0.5), inset 0 1px 0 rgba(255,255,255,0.35)" }}>
-              <Mascot size={25} />
-            </span>
-            MediReach
-          </button>
-          <div style={{ display: "none", gap: "0.4rem", alignItems: "center" }} className="mb-nav-desktop">
-            {NAV_LINKS.map((l) => {
-              const isActive = l.type === "page" && page === l.id;
-              return (
-                <button
-                  key={l.id}
-                  className="mb-navlink"
-                  style={{ padding: "0.5rem 0.85rem", borderRadius: 10, color: isActive ? "var(--text)" : "var(--text-muted)", background: isActive ? "rgba(15,23,42,0.05)" : "transparent" }}
-                  onClick={() => navigate(l)}
-                >
-                  {l.label}
-                </button>
-              );
-            })}
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.9rem" }}>
-            {SUPABASE_READY && session && (
-              <span style={{ display: "none", fontSize: "0.78rem", color: "var(--text-muted)", fontWeight: 600 }} className="mb-nav-desktop">
-                {session.user.email} · <button onClick={signOut} className="mb-navlink" style={{ padding: 0, fontSize: "0.78rem", display: "inline" }}>Sign out</button>
-              </span>
-            )}
-            {isAdmin && (
-              <button
-                className="mb-navlink"
-                style={{ padding: "0.5rem 0.85rem", borderRadius: 10, color: page === "admin" ? "var(--text)" : "var(--text-muted)", background: page === "admin" ? "rgba(15,23,42,0.05)" : "transparent" }}
-                onClick={() => { setPage("admin"); setMenuOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-              >
-                Admin
-              </button>
-            )}
-            <RippleButton className="mb-btn ghost" style={{ padding: "0.55rem 1.15rem", display: "none", fontSize: "0.85rem" }} id="mb-nav-cta" onClick={goToChat}>
-              {SUPABASE_READY && session ? "Talk now" : SUPABASE_READY ? "Sign in" : "Talk now"}
-            </RippleButton>
-            <button className="mb-navlink" style={{ display: "inline-flex" }} onClick={() => setMenuOpen((m) => !m)} aria-label="Toggle menu">
-              <Menu size={20} />
-            </button>
-          </div>
-        </div>
-        <style>{`
-          @media (min-width: 760px) {
-            .mb-nav-desktop { display: flex !important; }
-            #mb-nav-cta { display: inline-flex !important; }
-            .mb-nav > div > div:last-child > button[aria-label="Toggle menu"] { display: none !important; }
-          }
-        `}</style>
-        {menuOpen && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem", padding: "0 1.25rem 1rem", borderTop: "1px solid var(--border)", marginTop: "0.2rem", paddingTop: "0.75rem" }}>
-            {NAV_LINKS.map((l) => (
-              <button key={l.id} className="mb-navlink" style={{ textAlign: "left", padding: "0.55rem 0.4rem" }} onClick={() => navigate(l)}>{l.label}</button>
-            ))}
-            {SUPABASE_READY && session && (
-              <button className="mb-navlink" style={{ textAlign: "left", padding: "0.55rem 0.4rem" }} onClick={signOut}>Sign out ({session.user.email})</button>
-            )}
-          </div>
-        )}
-      </nav>}
-      {page !== "chat" && <div className="mb-progress" style={{ transform: `scaleX(${scrollPct})` }} />}
-
-      {/* Horizontal-overflow clipping lives on this wrapper, not on .mb-root/  */}
-      {/* body/html — any of those being an ancestor of the sticky <nav> above  */}
-      {/* would silently break its stickiness (a cross-browser overflow quirk). */}
       <div className="mb-page-content">
-        {!immersiveChat && <Blobs />}
-
-        {page === "about" ? (
-          <AboutUsPage onGoToChat={goToChat} signedIn={!!session || !SUPABASE_READY} />
-        ) : page === "admin" ? (
-          <AdminGallery isAdmin={isAdmin} />
+        {page === "admin" ? (
+          <div className="mb-admin-shell">
+            <div className="mb-admin-bar">
+              <button type="button" className="mb-topbar-btn" onClick={goHome}><ArrowLeft size={15} /> Back to Clarity</button>
+            </div>
+            <AdminGallery isAdmin={isAdmin} />
+          </div>
         ) : (
-          <ChatPage session={session} sessionLoading={sessionLoading} onSignOut={signOut} onGuest={startGuest} guestLoading={guestLoading} guestError={guestError} onGoAbout={() => { setPage("about"); window.scrollTo({ top: 0 }); }} onGoAdmin={isAdmin ? () => { setPage("admin"); window.scrollTo({ top: 0 }); } : null} />
-        )}
-
-        {page !== "chat" && (
-          <footer style={{ position: "relative", borderTop: "1px solid var(--border)", padding: "2rem 1.25rem", textAlign: "center", zIndex: 1 }}>
-            <p style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
-              MediReach · Built by {STUDENT_NAME} · Not a substitute for professional medical advice
-            </p>
-          </footer>
+          <ChatPage
+            session={session}
+            sessionLoading={sessionLoading}
+            onSignOut={signOut}
+            onRequireAuth={requireAuth}
+            onOpenAbout={() => setAboutOpen(true)}
+            onGoAdmin={isAdmin ? () => { setPage("admin"); window.scrollTo(0, 0); } : null}
+            initialPrompt={pendingPrompt}
+            onInitialPromptUsed={() => setPendingPrompt(null)}
+          />
         )}
       </div>
+
+      {aboutOpen && <AboutPanel onClose={() => setAboutOpen(false)} />}
+      {authDialog && !session && (
+        <AuthDialog
+          initialMode={authDialog.mode}
+          pendingText={authDialog.pending}
+          onClose={() => setAuthDialog(null)}
+          onGuest={startGuest}
+          guestLoading={guestLoading}
+          guestError={guestError}
+        />
+      )}
     </div>
   );
 }
