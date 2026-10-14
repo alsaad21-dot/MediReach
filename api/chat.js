@@ -12,8 +12,90 @@ const TOTAL_BUDGET_MS = 50000; // stays under the 60s maxDuration in vercel.json
 
 const BUSY_MESSAGE = "Clarity's getting a lot of questions right now — give it a few seconds and try again.";
 
+// ---- Who may call this endpoint ---------------------------------------------
+// Only people signed in to MediReach (guests included) may use Clarity — otherwise anyone who finds
+// this URL could spend the Gemini quota. The browser sends its Supabase access token and we check it
+// with Supabase. These two values are public by design (they already ship in index.html), so they
+// are safe to keep here; set SUPABASE_URL / SUPABASE_ANON_KEY in Vercel to override.
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qtofuzvlftxlqxnejxqh.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_RXjnbT5WVKUP1v-eV3SgyQ_CeFk7aey';
+
+// ---- Limits ----------------------------------------------------------------
+// Best-effort, per server instance (Vercel may run several, and they reset when they restart), so this
+// stops casual abuse and runaway loops rather than a determined attacker. For hard limits, add a Vercel
+// Firewall rate-limit rule on /api/chat as well.
+const USER_PER_MINUTE = 10;
+const USER_PER_HOUR = 120;
+const IP_PER_MINUTE = 30;
+const MAX_MESSAGES = 80;
+const MAX_SYSTEM_CHARS = 30000;
+const MAX_MESSAGE_CHARS = 12000;
+const MAX_ATTACHMENTS_PER_MESSAGE = 6;
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const isRetryable = (status) => status === 429 || status >= 500;
+
+const hits = new Map(); // key -> array of timestamps (ms)
+function overLimit(key, windowMs, max, now) {
+  const recent = (hits.get(key) || []).filter((t) => now - t < windowMs);
+  hits.set(key, recent);
+  return recent.length >= max;
+}
+function record(key, now) {
+  const list = hits.get(key) || [];
+  list.push(now);
+  hits.set(key, list);
+}
+function prune(now) {
+  if (hits.size < 2000) return;
+  for (const [key, list] of hits) {
+    if (!list.some((t) => now - t < 3600 * 1000)) hits.delete(key);
+  }
+}
+
+const verified = new Map(); // token -> { userId, until }
+async function verifyToken(token) {
+  const now = Date.now();
+  const cached = verified.get(token);
+  if (cached && cached.until > now) return { userId: cached.userId };
+
+  let response;
+  try {
+    response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch (err) {
+    return { unavailable: true };
+  }
+  if (response.status === 401 || response.status === 403) return { invalid: true };
+  if (!response.ok) return { unavailable: true };
+  const user = await response.json().catch(() => null);
+  if (!user || !user.id) return { invalid: true };
+  if (verified.size > 1000) verified.clear();
+  verified.set(token, { userId: user.id, until: now + 60 * 1000 });
+  return { userId: user.id };
+}
+
+function validate(system, messages) {
+  if (!Array.isArray(messages) || messages.length === 0) return 'No message to send.';
+  if (messages.length > MAX_MESSAGES) return 'This conversation is too long — start a new chat.';
+  if (system !== undefined && (typeof system !== 'string' || system.length > MAX_SYSTEM_CHARS)) return 'Invalid request.';
+  for (const m of messages) {
+    if (!m || typeof m !== 'object') return 'Invalid request.';
+    if (m.content !== undefined && m.content !== null && (typeof m.content !== 'string' || m.content.length > MAX_MESSAGE_CHARS)) {
+      return 'That message is too long — try shortening it.';
+    }
+    if (m.attachments !== undefined && m.attachments !== null) {
+      if (!Array.isArray(m.attachments) || m.attachments.length > MAX_ATTACHMENTS_PER_MESSAGE) return 'Too many attachments.';
+      for (const a of m.attachments) {
+        const okType = a && typeof a.mimeType === 'string' && (a.mimeType.startsWith('image/') || a.mimeType === 'application/pdf');
+        if (!okType || typeof a.data !== 'string') return 'Unsupported attachment.';
+      }
+    }
+  }
+  return null;
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -25,10 +107,38 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { system, messages } = req.body || {};
-    if (!Array.isArray(messages) || messages.length === 0) {
-      return res.status(400).json({ error: 'No message to send.' });
+    const now = Date.now();
+    prune(now);
+
+    // 1. Signed in?
+    const header = String(req.headers?.authorization || '');
+    const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+    if (!token) {
+      return res.status(401).json({ error: 'Please sign in to chat with Clarity. If you were signed in, refresh the page and try again.' });
     }
+    const auth = await verifyToken(token);
+    if (auth.unavailable) {
+      return res.status(503).json({ error: "Couldn't check your sign-in just now — please try again in a moment." });
+    }
+    if (auth.invalid) {
+      return res.status(401).json({ error: 'Your session has expired — refresh the page and sign in again.' });
+    }
+
+    // 2. Not going too fast?
+    const forwarded = String(req.headers?.['x-forwarded-for'] || '').split(',')[0].trim();
+    const ipKey = `ip:${forwarded || 'unknown'}`;
+    const userKey = `user:${auth.userId}`;
+    if (overLimit(userKey, 60 * 1000, USER_PER_MINUTE, now) || overLimit(userKey, 3600 * 1000, USER_PER_HOUR, now) || overLimit(ipKey, 60 * 1000, IP_PER_MINUTE, now)) {
+      res.setHeader?.('Retry-After', '20');
+      return res.status(429).json({ error: "You're sending messages quickly — wait a few seconds and try again." });
+    }
+    record(userKey, now);
+    record(ipKey, now);
+
+    // 3. Sensible request?
+    const { system, messages } = req.body || {};
+    const problem = validate(system, messages);
+    if (problem) return res.status(400).json({ error: problem });
 
     const contents = messages.map((m) => {
       const parts = [];

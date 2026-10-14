@@ -6,7 +6,20 @@
 <title>Clarity — understand your health, prepare for your appointment</title>
 <meta name="theme-color" content="#FAF8F5" />
 <meta name="description" content="Clarity is an AI health information assistant from MediReach. Understand medical information and prepare for conversations with your healthcare professional." />
-<link rel="icon" href="data:,">
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Clarity by MediReach" />
+<meta property="og:title" content="Clarity — let's make sense of your health" />
+<meta property="og:description" content="Ask a health question, understand medical information, or prepare for a conversation with your healthcare professional." />
+<meta property="og:url" content="https://medi-reach-seven.vercel.app/" />
+<meta property="og:image" content="https://medi-reach-seven.vercel.app/og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Clarity — let's make sense of your health" />
+<meta name="twitter:description" content="Ask a health question, understand medical information, or prepare for a conversation with your healthcare professional." />
+<meta name="twitter:image" content="https://medi-reach-seven.vercel.app/og.png" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <!-- Versions are pinned on purpose: an unpinned URL (e.g. plain @babel/standalone)
      silently jumps to the newest major release and can break the whole site. -->
 <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
@@ -637,6 +650,11 @@ const GlobalStyles = () => (
     .mb-send:disabled { opacity: 0.35; }
     .mb-attach-btn { width: 36px; height: 36px; border-radius: 10px; margin-bottom: 3px; }
     .mb-attach-btn:hover { background: rgba(15,27,45,0.06); color: var(--primary); }
+    .mb-disclaimer-link { background: none; border: none; padding: 0; cursor: pointer; color: var(--text-muted); font: inherit; text-decoration: underline; }
+    .mb-disclaimer-link:hover { color: var(--primary); }
+    .mb-attach-note { font-size: 0.78rem; color: var(--text-muted); margin: 0 0.2rem 0.5rem; }
+    .mb-btn-danger { background: var(--danger); border-color: var(--danger); }
+    .mb-btn-danger:hover { background: #8F1D14; border-color: #8F1D14; }
     .mb-disclaimer { text-align: center; font-size: 0.76rem; color: var(--text-faint); margin: 0.6rem 0 0; line-height: 1.4; }
 
     /* ---- dialogs (sign in, about) ---- */
@@ -1136,7 +1154,14 @@ function EmptyState({ firstName, onPick }) {
   );
 }
 
-const DISCLAIMER = "Clarity shares general health information, not medical advice. In an emergency, call your local emergency number.";
+function Disclaimer({ onPrivacy }) {
+  return (
+    <p className="mb-disclaimer">
+      Clarity shares general health information, not medical advice. In an emergency, call your local emergency number.
+      {onPrivacy && <>{" "}<button type="button" className="mb-disclaimer-link" onClick={onPrivacy}>Privacy</button></>}
+    </p>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /* AUTH — sign in / sign up via Supabase, so history can be saved      */
@@ -1304,7 +1329,11 @@ function AuthDialog({ initialMode, pendingText, onClose, onGuest, guestLoading, 
   );
 }
 
-function AboutPanel({ onClose }) {
+function AboutPanel({ onClose, section }) {
+  const privacyRef = useRef(null);
+  useEffect(() => {
+    if (section === "privacy" && privacyRef.current) privacyRef.current.scrollIntoView({ block: "start" });
+  }, [section]);
   return (
     <Modal onClose={onClose} label="About Clarity" size="lg">
       <h2 className="mb-auth-title" style={{ marginBottom: "0.6rem" }}>About Clarity</h2>
@@ -1329,6 +1358,14 @@ function AboutPanel({ onClose }) {
         <strong>In an emergency,</strong> call your local emergency number right away. <strong>In an emotional crisis or
         if you're thinking about suicide,</strong> in the US you can call or text 988 (Suicide &amp; Crisis Lifeline) any time.
       </p>
+
+      <h3 className="mb-about-h" ref={privacyRef} id="about-privacy">Your data and privacy</h3>
+      <ul className="mb-about-list">
+        <li>Your account (email and name, or an anonymous ID for guests), your conversations, and anything you attach are stored in MediReach's database so your chats are saved between visits.</li>
+        <li>To write replies, your messages and attachments are sent to Google's Gemini AI service.</li>
+        <li>The people who run MediReach can view stored conversations and attached photos.</li>
+        <li>Please don't share anything you wouldn't be comfortable having stored. You can delete any chat from the sidebar, or delete your account and all of your data from the sidebar menu.</li>
+      </ul>
 
       <h3 className="mb-about-h">Why it exists</h3>
       <p className="mb-about-p">
@@ -1371,7 +1408,7 @@ function SignedOutChat({ onRequireAuth, onOpenAbout }) {
         <header className="mb-chat-topbar">
           <BrandMark />
           <div className="mb-topbar-actions">
-            <button type="button" className="mb-topbar-btn" onClick={onOpenAbout}>About</button>
+            <button type="button" className="mb-topbar-btn" onClick={() => onOpenAbout()}>About</button>
             <button type="button" className="mb-topbar-btn" onClick={() => onRequireAuth("signin", null)}>Sign in</button>
             <button type="button" className="mb-btn mb-btn-sm" onClick={() => onRequireAuth("signup", null)}>Sign up</button>
           </div>
@@ -1393,10 +1430,60 @@ function SignedOutChat({ onRequireAuth, onOpenAbout }) {
             />
             <button type="submit" className="mb-send" disabled={!text.trim()} aria-label="Send message"><Send size={16} /></button>
           </form>
-          <p className="mb-disclaimer">{DISCLAIMER}</p>
+          <Disclaimer onPrivacy={() => onOpenAbout("privacy")} />
         </div>
       </div>
     </div>
+  );
+}
+
+/* Permanently deletes the signed-in person's data and login (done by the server, which holds the key to do it). */
+function DeleteAccountModal({ session, onClose }) {
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const isGuest = !!session?.user?.is_anonymous;
+
+  const remove = async (e) => {
+    e.preventDefault();
+    if (typed.trim().toUpperCase() !== "DELETE") return;
+    setBusy(true);
+    setError(null);
+    try {
+      const token = (await supabaseClient.auth.getSession()).data?.session?.access_token;
+      const response = await fetch(`${API_BASE_URL}/api/delete-account`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ confirm: true }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.error || "Couldn't delete your account right now. Please try again.");
+      try { localStorage.removeItem(FEEDBACK_DONE_KEY); } catch (err) { /* ignore */ }
+      await supabaseClient.auth.signOut({ scope: "local" }).catch(() => {});
+      // Signing out swaps the app back to the signed-out screen, which closes this dialog.
+    } catch (err) {
+      setError(err instanceof TypeError ? "Couldn't reach the server — check your connection and try again." : err.message);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal onClose={busy ? () => {} : onClose} label="Delete account" size="sm">
+      <h2 className="mb-auth-title">{isGuest ? "Delete my data" : "Delete my account"}</h2>
+      <p className="mb-auth-sub">
+        This permanently deletes {isGuest ? "this guest session and" : "your login and"} all of your conversations, attached photos and files, and Clarity's notes about you.
+        It can't be undone.
+      </p>
+      <form onSubmit={remove} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+        <label htmlFor="mb-delete-confirm" style={{ fontSize: "0.88rem", color: "var(--text-muted)" }}>Type <strong style={{ color: "var(--text)" }}>DELETE</strong> to confirm</label>
+        <input id="mb-delete-confirm" className="mb-field" type="text" autoComplete="off" autoCapitalize="characters" value={typed} onChange={(e) => setTyped(e.target.value)} />
+        {error && <p role="alert" style={{ color: "var(--danger)", fontSize: "0.85rem", margin: 0 }}>{error}</p>}
+        <button type="submit" className="mb-btn mb-btn-danger" disabled={busy || typed.trim().toUpperCase() !== "DELETE"} style={{ width: "100%", justifyContent: "center" }}>
+          {busy ? "Deleting…" : "Permanently delete everything"}
+        </button>
+        <button type="button" className="mb-btn ghost" onClick={onClose} disabled={busy} style={{ width: "100%", justifyContent: "center" }}>Cancel</button>
+      </form>
+    </Modal>
   );
 }
 
@@ -1593,6 +1680,7 @@ function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin, initialPrompt
   const [memory, setMemory] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [attachments, setAttachments] = useState([]);
   const [attachError, setAttachError] = useState(null);
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -1875,9 +1963,14 @@ function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin, initialPrompt
     }
 
     try {
+      // The chat service only answers signed-in people (guests included), so send the current access token.
+      let accessToken = null;
+      if (supabaseClient) {
+        try { accessToken = (await supabaseClient.auth.getSession()).data?.session?.access_token || null; } catch (e) { /* sent without; the server will say sign in again */ }
+      }
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
         body: JSON.stringify({
           system: systemPrompt,
           // Only the newest message's attachments are re-sent as binary data —
@@ -2118,6 +2211,8 @@ function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin, initialPrompt
                   Chatting as a guest — your conversations are saved, just not linked to an email.
                   <br />
                   <button onClick={onSignOut} className="mb-navlink" style={{ padding: 0, fontSize: "0.76rem", marginTop: "0.3rem" }}>Sign out</button>
+                  {" · "}
+                  <button onClick={() => setDeletingAccount(true)} className="mb-navlink" style={{ padding: 0, fontSize: "0.76rem" }}>Delete data</button>
                 </>
               ) : (
                 <>
@@ -2127,6 +2222,8 @@ function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin, initialPrompt
                   <button onClick={() => setEditingProfile(true)} className="mb-navlink" style={{ padding: 0, fontSize: "0.76rem", marginTop: "0.3rem" }}>Edit profile</button>
                   {" · "}
                   <button onClick={onSignOut} className="mb-navlink" style={{ padding: 0, fontSize: "0.76rem" }}>Sign out</button>
+                  {" · "}
+                  <button onClick={() => setDeletingAccount(true)} className="mb-navlink" style={{ padding: 0, fontSize: "0.76rem" }}>Delete account</button>
                 </>
               )}
             </div>
@@ -2147,6 +2244,7 @@ function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin, initialPrompt
         )}
       </aside>
       {editingProfile && <EditProfileModal session={session} onClose={() => setEditingProfile(false)} />}
+      {deletingAccount && <DeleteAccountModal session={session} onClose={() => setDeletingAccount(false)} />}
       {cameraOpen && <CameraModal onCapture={handleCameraCapture} onClose={() => setCameraOpen(false)} />}
 
       <div className="mb-chat-main">
@@ -2167,7 +2265,7 @@ function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin, initialPrompt
                 {speechOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
               </button>
             )}
-            <button type="button" className="mb-topbar-btn" onClick={onGoAbout}>About</button>
+            <button type="button" className="mb-topbar-btn" onClick={() => onGoAbout()}>About</button>
           </div>
         </header>
 
@@ -2229,6 +2327,7 @@ function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin, initialPrompt
               ))}
             </div>
           )}
+          {attachments.length > 0 && <p className="mb-attach-note">Attachments are sent to Clarity's AI service and saved with this conversation.</p>}
           {attachError && <p style={{ color: "var(--danger)", fontSize: "0.78rem", padding: "0 0.2rem 0.5rem", margin: 0 }}>{attachError}</p>}
           {micError && <p style={{ color: "var(--danger)", fontSize: "0.78rem", padding: "0 0.2rem 0.5rem", margin: 0 }}>{micError}</p>}
           {listening && !micError && <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", padding: "0 0.2rem 0.5rem", margin: 0 }}>Listening… tap the mic again to stop.</p>}
@@ -2266,7 +2365,7 @@ function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin, initialPrompt
               <Send size={16} />
             </button>
           </form>
-          <p className="mb-disclaimer">{DISCLAIMER}</p>
+          <Disclaimer onPrivacy={() => onGoAbout("privacy")} />
         </div>
       </div>
     </div>
@@ -2465,6 +2564,7 @@ function App() {
   };
 
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [aboutSection, setAboutSection] = useState(null);
   const [authDialog, setAuthDialog] = useState(null);       // { mode, pending } while sign-in is open
   const [pendingPrompt, setPendingPrompt] = useState(null); // message to send once the visitor is signed in
 
@@ -2510,7 +2610,7 @@ function App() {
             sessionLoading={sessionLoading}
             onSignOut={signOut}
             onRequireAuth={requireAuth}
-            onOpenAbout={() => setAboutOpen(true)}
+            onOpenAbout={(section) => { setAboutSection(typeof section === "string" ? section : null); setAboutOpen(true); }}
             onGoAdmin={isAdmin ? () => { setPage("admin"); window.scrollTo(0, 0); } : null}
             initialPrompt={pendingPrompt}
             onInitialPromptUsed={() => setPendingPrompt(null)}
@@ -2518,7 +2618,7 @@ function App() {
         )}
       </div>
 
-      {aboutOpen && <AboutPanel onClose={() => setAboutOpen(false)} />}
+      {aboutOpen && <AboutPanel section={aboutSection} onClose={() => setAboutOpen(false)} />}
       {authDialog && !session && (
         <AuthDialog
           initialMode={authDialog.mode}

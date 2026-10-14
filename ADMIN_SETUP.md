@@ -79,3 +79,25 @@ where user_id = (select id from auth.users where email = 'you@example.com');
 - The gallery shows **every** image attachment ever sent to Clarity across
   all users, including anything sensitive (rashes, injuries, lab results).
   Treat admin access accordingly.
+
+
+## Who can use the chat service (`/api/chat`)
+
+Only signed-in people (guests included) can use Clarity: the browser sends its Supabase access
+token and `api/chat.js` checks it with Supabase before calling Gemini. There's also a
+best-effort limit of 10 messages a minute per person (and 30 a minute per network address).
+Those limits live in each server instance's memory, so for a hard limit also add a rate-limit
+rule on `/api/chat` under Vercel → your project → **Firewall**.
+
+## "Delete my account" setup (one-time)
+
+The Delete account / Delete data buttons call `api/delete-account.js`, which needs your
+Supabase **secret key** (never put it in `index.html`):
+
+1. Supabase dashboard → **Project Settings → API Keys** → copy the **secret** key
+   (starts with `sb_secret_…`; on older projects, the `service_role` key).
+2. Vercel → your project → **Settings → Environment Variables** → add
+   `SUPABASE_SERVICE_ROLE_KEY` with that value (Production), then **redeploy**.
+
+Until it's added, the button shows "Account deletion isn't switched on yet." It removes that
+person's messages, feedback, conversations, profile and login — and only theirs.
