@@ -12,23 +12,6 @@
 <script src="https://unpkg.com/@babel/standalone@7.29.10/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
-  }
-}
-</script>
-<script type="module">
-  import * as THREE from "three";
-  import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-  import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
-  window.THREE = THREE;
-  window.RoomEnvironment = RoomEnvironment;
-  window.RoundedBoxGeometry = RoundedBoxGeometry;
-  window.dispatchEvent(new Event("mb-three-ready"));
-</script>
 </head>
 <body style="margin:0;">
 <div id="root"></div>
@@ -633,6 +616,9 @@ const GlobalStyles = () => (
     }
     .mb-sidebar-item:hover .mb-sidebar-item-delete { opacity: 1; }
     .mb-sidebar-item-delete:hover { color: var(--danger); background: rgba(248,113,113,0.15); }
+    .mb-sidebar-links { display: flex; flex-direction: column; padding: 0.4rem 0.6rem; border-top: 1px solid var(--border); }
+    .mb-sidebar-link { background: none; border: none; text-align: left; cursor: pointer; font: inherit; font-size: 0.84rem; font-weight: 600; color: var(--text-muted); padding: 0.5rem 0.6rem; border-radius: 8px; }
+    .mb-sidebar-link:hover { background: rgba(15,23,42,0.05); color: var(--text); }
     .mb-sidebar-footer { padding: 0.9rem 1.15rem; border-top: 1px solid var(--border); font-size: 0.76rem; color: var(--text-muted); }
 
     .mb-chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; position: relative; }
@@ -869,280 +855,6 @@ function badgeSvgMarkup(size = 256) {
 }
 function getBadgeSvgDataUrl() {
   return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(badgeSvgMarkup())));
-}
-
-/* A real-time WebGL full-body showcase for Clarity — a glossy, studio-lit  */
-/* chrome android (head, torso, arms, hover base) in MediReach's colors     */
-/* that gently turns like a product render, with Clarity's own face and    */
-/* badge art floating on it. Falls back to the flat <Mascot> art if         */
-/* WebGL/Three.js isn't available.                                          */
-function ClarityFigure3D({ mood = "calm", talking = false, width = 480, height = 620 }) {
-  const mountRef = useRef(null);
-  const stateRef = useRef({});
-  const [threeReady, setThreeReady] = useState(!!window.THREE);
-  const [webglFailed, setWebglFailed] = useState(false);
-  const reduceMotion = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  useEffect(() => {
-    if (window.THREE) return;
-    const onReady = () => setThreeReady(true);
-    window.addEventListener("mb-three-ready", onReady);
-    // If Three.js never arrives (CDN down, blocked network), show the flat
-    // mascot instead of leaving an empty space where the robot should be.
-    const giveUp = setTimeout(() => { if (!window.THREE) setWebglFailed(true); }, 8000);
-    return () => { window.removeEventListener("mb-three-ready", onReady); clearTimeout(giveUp); };
-  }, []);
-
-  // Scene setup — runs once Three.js is ready and the mount node exists.
-  useEffect(() => {
-    if (!threeReady || !mountRef.current || webglFailed) return;
-    const THREE = window.THREE;
-    const mount = mountRef.current;
-    let disposed = false;
-
-    let renderer;
-    try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    } catch (e) {
-      setWebglFailed(true);
-      return;
-    }
-
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    renderer.setPixelRatio(dpr);
-    renderer.setSize(width, height, false);
-    renderer.domElement.style.width = "100%";
-    renderer.domElement.style.height = "100%";
-    renderer.domElement.style.display = "block";
-    renderer.setClearColor(0x000000, 0);
-    mount.appendChild(renderer.domElement);
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(28, width / height, 0.1, 20);
-    camera.position.set(0, 0.45, 9.2);
-
-    const pmrem = new THREE.PMREMGenerator(renderer);
-    scene.environment = pmrem.fromScene(new window.RoomEnvironment(), 0.04).texture;
-
-    const group = new THREE.Group();
-    scene.add(group);
-
-    const chrome = (color) => new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color(color),
-      metalness: 0.85,
-      roughness: 0.18,
-      clearcoat: 1,
-      clearcoatRoughness: 0.1,
-      envMapIntensity: 1.5,
-    });
-    const bodyMat = chrome("#2563EB");
-    const accentMat = bodyMat;
-    const disposables = [bodyMat];
-
-    const RBox = window.RoundedBoxGeometry;
-
-    // Head — a flat-fronted rounded box (matching <Mascot>'s rounded-rect head)
-    // so the face art sits flush against it instead of floating over a curved gap.
-    const headGeo = new RBox(1.0, 0.86, 0.56, 5, 0.24);
-    const head = new THREE.Mesh(headGeo, bodyMat);
-    head.position.y = 1.62;
-    group.add(head);
-    disposables.push(headGeo);
-
-    const faceGeo = new THREE.PlaneGeometry(0.94, 0.94);
-    const faceMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, toneMapped: false });
-    const facePlane = new THREE.Mesh(faceGeo, faceMat);
-    facePlane.position.set(0, 1.62, 0.31);
-    group.add(facePlane);
-    disposables.push(faceGeo, faceMat);
-
-    // Ears, matching <Mascot>'s side ear bumps
-    const earGeo = new RBox(0.14, 0.32, 0.24, 4, 0.06);
-    [-1, 1].forEach((side) => {
-      const ear = new THREE.Mesh(earGeo, accentMat);
-      ear.position.set(side * 0.56, 1.62, 0);
-      group.add(ear);
-    });
-    disposables.push(earGeo);
-
-    // Neck
-    const neckGeo = new THREE.CylinderGeometry(0.13, 0.16, 0.16, 24);
-    const neck = new THREE.Mesh(neckGeo, accentMat);
-    neck.position.y = 1.17;
-    group.add(neck);
-    disposables.push(neckGeo);
-
-    // Torso — tapered (broader shoulders, narrower waist) for a human silhouette
-    // rather than a round capsule.
-    const torsoGeo = new THREE.CylinderGeometry(0.46, 0.34, 1.05, 32, 1, false);
-    const torso = new THREE.Mesh(torsoGeo, bodyMat);
-    torso.position.y = 0.55;
-    group.add(torso);
-    disposables.push(torsoGeo);
-
-    const badgeGeo = new THREE.CircleGeometry(0.26, 40);
-    const badgeMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, toneMapped: false });
-    const badgePlane = new THREE.Mesh(badgeGeo, badgeMat);
-    badgePlane.position.set(0, 0.68, 0.5);
-    group.add(badgePlane);
-    disposables.push(badgeGeo, badgeMat);
-
-    // Hips
-    const hipGeo = new THREE.CylinderGeometry(0.34, 0.28, 0.28, 32);
-    const hips = new THREE.Mesh(hipGeo, accentMat);
-    hips.position.y = -0.1;
-    group.add(hips);
-    disposables.push(hipGeo);
-
-    // Shoulder → elbow → hand arm rig, built as a small FK chain (a Group per
-    // joint) so the forearm and hand inherit the upper arm's transform and
-    // stay correctly attached at any rotation, instead of one rigid tube.
-    const shoulderGeo = new THREE.SphereGeometry(0.1, 20, 20);
-    const upperArmLength = 0.5;
-    const upperArmGeo = new THREE.CylinderGeometry(0.095, 0.075, upperArmLength, 20);
-    const elbowGeo = new THREE.SphereGeometry(0.072, 18, 18);
-    const forearmLength = 0.46;
-    const forearmGeo = new THREE.CylinderGeometry(0.072, 0.058, forearmLength, 20);
-    const handGeo = new THREE.SphereGeometry(0.09, 18, 18);
-    const armTilt = 0.14;
-    [-1, 1].forEach((side) => {
-      const shoulderX = side * 0.52, shoulderY = 0.95;
-
-      const shoulder = new THREE.Mesh(shoulderGeo, accentMat);
-      shoulder.position.set(shoulderX, shoulderY, 0);
-      group.add(shoulder);
-
-      const upperArmPivot = new THREE.Group();
-      upperArmPivot.position.set(shoulderX, shoulderY, 0);
-      upperArmPivot.rotation.z = side * armTilt;
-      group.add(upperArmPivot);
-
-      const upperArm = new THREE.Mesh(upperArmGeo, bodyMat);
-      upperArm.position.y = -upperArmLength / 2;
-      upperArmPivot.add(upperArm);
-
-      const elbow = new THREE.Mesh(elbowGeo, accentMat);
-      elbow.position.y = -upperArmLength;
-      upperArmPivot.add(elbow);
-
-      // Forearm hangs from the elbow with a relaxed bend, nested under the
-      // upper arm pivot so it can never drift off the joint.
-      const forearmPivot = new THREE.Group();
-      forearmPivot.position.y = -upperArmLength;
-      forearmPivot.rotation.x = -0.22;
-      forearmPivot.rotation.z = -side * 0.08;
-      upperArmPivot.add(forearmPivot);
-
-      const forearm = new THREE.Mesh(forearmGeo, bodyMat);
-      forearm.position.y = -forearmLength / 2;
-      forearmPivot.add(forearm);
-
-      const hand = new THREE.Mesh(handGeo, accentMat);
-      hand.position.y = -forearmLength;
-      hand.scale.set(0.85, 1.15, 0.75);
-      forearmPivot.add(hand);
-    });
-    disposables.push(shoulderGeo, upperArmGeo, elbowGeo, forearmGeo, handGeo);
-
-    // Legs (thigh + knee + shin, tapered) and feet
-    const thighGeo = new THREE.CylinderGeometry(0.17, 0.13, 0.62, 20);
-    const kneeGeo = new THREE.SphereGeometry(0.1, 18, 18);
-    const shinGeo = new THREE.CylinderGeometry(0.12, 0.09, 0.58, 20);
-    const footGeo = new RBox(0.22, 0.12, 0.34, 4, 0.05);
-    [-1, 1].forEach((side) => {
-      const thigh = new THREE.Mesh(thighGeo, bodyMat);
-      thigh.position.set(side * 0.2, -0.55, 0);
-      group.add(thigh);
-
-      const knee = new THREE.Mesh(kneeGeo, accentMat);
-      knee.position.set(side * 0.2, -0.86, 0);
-      group.add(knee);
-
-      const shin = new THREE.Mesh(shinGeo, bodyMat);
-      shin.position.set(side * 0.2, -1.15, 0);
-      group.add(shin);
-
-      const foot = new THREE.Mesh(footGeo, accentMat);
-      foot.position.set(side * 0.2, -1.5, 0.08);
-      group.add(foot);
-    });
-    disposables.push(thighGeo, kneeGeo, shinGeo, footGeo);
-
-    // Antenna, matching <Mascot>
-    const antennaGeo = new THREE.CylinderGeometry(0.022, 0.022, 0.26, 12);
-    const antenna = new THREE.Mesh(antennaGeo, chrome("#E2E8F0"));
-    antenna.position.y = 2.24;
-    group.add(antenna);
-    disposables.push(antennaGeo, antenna.material);
-    const tipGeo = new THREE.SphereGeometry(0.06, 20, 20);
-    const tip = new THREE.Mesh(tipGeo, new THREE.MeshPhysicalMaterial({ color: 0x5eead4, emissive: 0x14b8a6, emissiveIntensity: 0.6, metalness: 0.3, roughness: 0.2 }));
-    tip.position.y = 2.4;
-    group.add(tip);
-    disposables.push(tipGeo, tip.material);
-
-    const loader = new THREE.TextureLoader();
-    const applyFaceTexture = (m) => {
-      loader.load(getMascotSvgDataUrl(m, false), (tex) => {
-        if (disposed) { tex.dispose(); return; }
-        tex.colorSpace = THREE.SRGBColorSpace;
-        faceMat.map = tex;
-        faceMat.needsUpdate = true;
-      });
-    };
-    applyFaceTexture(mood);
-    loader.load(getBadgeSvgDataUrl(), (tex) => {
-      if (disposed) { tex.dispose(); return; }
-      tex.colorSpace = THREE.SRGBColorSpace;
-      badgeMat.map = tex;
-      badgeMat.needsUpdate = true;
-    });
-
-    scene.add(new THREE.HemisphereLight(0xdfe9ff, 0x0a0f1f, 0.9));
-    const rim1 = new THREE.PointLight(0x2563eb, 26, 12); rim1.position.set(-3, 2, 2.4); scene.add(rim1);
-    const rim2 = new THREE.PointLight(0x14b8a6, 22, 12); rim2.position.set(3, -0.8, 2); scene.add(rim2);
-    const rim3 = new THREE.PointLight(0xa855f7, 20, 12); rim3.position.set(0, 2.6, -2.4); scene.add(rim3);
-    const key = new THREE.PointLight(0xffffff, 9, 12); key.position.set(1, 1.6, 3.4); scene.add(key);
-
-    // Idle life — a gentle sway and bob, no scroll-linked camera movement.
-    let raf = null;
-    const start = performance.now();
-    const animate = (now) => {
-      const t = (now - start) / 1000;
-      if (!reduceMotion) {
-        group.rotation.y = Math.sin(t * 0.4) * 0.6;
-        group.rotation.x = Math.sin(t * 0.28) * 0.04;
-        group.position.y = Math.sin(t * 0.8) * 0.06;
-      } else {
-        group.rotation.y = 0.2;
-      }
-      renderer.render(scene, camera);
-      raf = requestAnimationFrame(animate);
-    };
-    raf = requestAnimationFrame(animate);
-
-    stateRef.current = { applyFaceTexture, renderer };
-
-    return () => {
-      disposed = true;
-      if (raf) cancelAnimationFrame(raf);
-      disposables.forEach((d) => d.dispose());
-      if (faceMat.map) faceMat.map.dispose();
-      if (badgeMat.map) badgeMat.map.dispose();
-      pmrem.dispose();
-      renderer.dispose();
-      if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
-    };
-  }, [threeReady, webglFailed, width, height]);
-
-  // Swap the face texture (without rebuilding the whole scene) when mood changes.
-  useEffect(() => {
-    if (stateRef.current.applyFaceTexture) stateRef.current.applyFaceTexture(mood);
-  }, [mood]);
-
-  if (webglFailed) {
-    return <Mascot size={Math.min(width, height) * 0.4} mood={mood} talking={talking} />;
-  }
-  return <div ref={mountRef} style={{ width: "100%", maxWidth: width, aspectRatio: `${width} / ${height}` }} />;
 }
 
 /* Strips leading `[[mood:x]]` and `[[memory: ...]]` tags off a reply.       */
@@ -1513,60 +1225,6 @@ function Blobs() {
   );
 }
 
-function Hero({ onStart }) {
-  const [heroMood, setHeroMood] = useState("calm");
-  const reactTimeout = useRef(null);
-
-  const react = (mood) => {
-    setHeroMood(mood);
-    if (reactTimeout.current) clearTimeout(reactTimeout.current);
-    reactTimeout.current = setTimeout(() => setHeroMood("calm"), 1400);
-  };
-
-  useEffect(() => () => { if (reactTimeout.current) clearTimeout(reactTimeout.current); }, []);
-
-  return (
-    <div className="mb-hero-dark-wrap">
-      <section className="mb-hero-grid" style={{ position: "relative", maxWidth: 1180, margin: "0 auto", padding: "4.5rem 1.25rem 2rem", zIndex: 1 }}>
-        <div className="mb-grid-floor" aria-hidden="true" />
-
-        <div style={{ position: "relative", zIndex: 1, textAlign: "left", maxWidth: 640 }}>
-          <p style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", background: "var(--grad-2)", color: "#fff", fontWeight: 700, fontSize: "0.76rem", padding: "0.35rem 0.85rem", borderRadius: 999, letterSpacing: "0.02em", boxShadow: "0 8px 20px -6px rgba(20,184,166,0.5)" }}>
-            <Sparkles size={13} aria-hidden="true" /> A friendlier first step toward care
-          </p>
-          <h1 className="mb-hero-title">
-            Clarity
-            <span className="mb-hero-title-sub">
-              Healthcare questions,{" "}
-              <span className="mb-gradient-text-anim">without the dread.</span>
-            </span>
-          </h1>
-          <p style={{ color: "var(--text-muted)", fontSize: "1.1rem", maxWidth: 480, margin: "0 0 2rem" }}>
-            MediReach closes the gap between people and the healthcare they're putting off. Clarity, its AI companion,
-            meets you in the moment before the appointment — reassuring where it can be, direct where it has to be.
-          </p>
-          <RippleButton className="mb-btn" onClick={onStart}>
-            <MessageCircle size={17} /> Talk to Clarity
-          </RippleButton>
-        </div>
-
-        <div
-          className="mb-hero-figure"
-          onMouseEnter={() => react("playful")}
-          onClick={() => react("celebratory")}
-          role="button"
-          tabIndex={0}
-          aria-label="Say hi to Clarity"
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") react("celebratory"); }}
-        >
-          <div className="mb-figure-label"><span className="mb-figure-label-dot" />Clarity</div>
-          <ClarityFigure3D width={560} height={720} mood={heroMood} />
-        </div>
-      </section>
-    </div>
-  );
-}
-
 /* A radial gauge — circular progress ring with the percentage centered   */
 /* inside, echoing the reference's dial-style stat widgets instead of a    */
 /* flat number in a box.                                                   */
@@ -1603,10 +1261,6 @@ function StatCard({ stat, index }) {
   );
 }
 
-// The "Why this matters" heading itself now lives inside Hero's cinematic
-// stage (it fades/scales in as the robot recedes, overlapping the zoom
-// instead of appearing after it) — this section picks up right where that
-// heading settled, with just the supporting stat cards.
 function StatsSection() {
   return (
     <section id="why" style={{ position: "relative", maxWidth: 1000, margin: "0 auto", padding: "3rem 1.25rem", zIndex: 1 }}>
@@ -1991,7 +1645,7 @@ function FeedbackPrompt({ session, conversationId, onDone }) {
   );
 }
 
-function ChatWorkspace({ session, onSignOut, onGoHome }) {
+function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin }) {
   const [conversations, setConversations] = useState([]);
   const [conversationsLoading, setConversationsLoading] = useState(!!(SUPABASE_READY && session));
   const [activeId, setActiveId] = useState(null);
@@ -2466,7 +2120,7 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
     <div className="mb-chat-app">
       <div className={`mb-sidebar-scrim ${sidebarOpen ? "open" : ""}`} onClick={() => setSidebarOpen(false)} />
       <aside className={`mb-sidebar ${sidebarOpen ? "open" : ""}`}>
-        <button className="mb-sidebar-brand" onClick={onGoHome}>
+        <button className="mb-sidebar-brand" onClick={startNewChat} title="New chat">
           <span style={{ width: 26, height: 26, borderRadius: 8, background: "var(--grad-1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Mascot size={22} />
           </span>
@@ -2491,6 +2145,10 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
                 </button>
               ))}
             </div>
+            <div className="mb-sidebar-links">
+              <button className="mb-sidebar-link" onClick={onGoAbout}>About us</button>
+              {onGoAdmin && <button className="mb-sidebar-link" onClick={onGoAdmin}>Admin gallery</button>}
+            </div>
             <div className="mb-sidebar-footer">
               {session.user.is_anonymous ? (
                 <>
@@ -2511,11 +2169,17 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
             </div>
           </>
         ) : (
-          <div className="mb-sidebar-list" style={{ paddingTop: "0.5rem" }}>
-            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", padding: "0.5rem 0.7rem" }}>
-              Conversation history isn't available right now.
-            </p>
-          </div>
+          <>
+            <div className="mb-sidebar-list" style={{ paddingTop: "0.5rem" }}>
+              <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", padding: "0.5rem 0.7rem" }}>
+                Conversation history isn't available right now.
+              </p>
+            </div>
+            <div className="mb-sidebar-links">
+              <button className="mb-sidebar-link" onClick={onGoAbout}>About us</button>
+              {onGoAdmin && <button className="mb-sidebar-link" onClick={onGoAdmin}>Admin gallery</button>}
+            </div>
+          </>
         )}
       </aside>
       {editingProfile && <EditProfileModal session={session} onClose={() => setEditingProfile(false)} />}
@@ -2525,13 +2189,6 @@ function ChatWorkspace({ session, onSignOut, onGoHome }) {
         <Confetti trigger={celebrate} />
         <div className="mb-chat-topbar">
           <button className="mb-sidebar-toggle" onClick={() => setSidebarOpen(true)} aria-label="Open conversations"><Menu size={20} /></button>
-          <button onClick={onGoHome} aria-label="Back to home" title="Back to home"
-            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center", padding: "0.25rem", borderRadius: 8, transition: "background 0.15s ease, color 0.15s ease" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg)"; e.currentTarget.style.color = "var(--text)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = "var(--text-muted)"; }}
-          >
-            <ArrowLeft size={18} />
-          </button>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: MOOD_META[lastAssistantMood].grad, display: "inline-block" }} />
           <span style={{ fontSize: "0.85rem", fontWeight: 700 }}>
             {firstName ? `Welcome back, ${firstName}` : "Clarity"}
@@ -2704,9 +2361,18 @@ const ABOUT_CARDS = [
   },
 ];
 
-function AboutUsPage({ onGoToChat }) {
+function AboutUsPage({ onGoToChat, signedIn }) {
   return (
-    <div style={{ position: "relative", maxWidth: 860, margin: "0 auto", padding: "3rem 1.25rem 4rem", zIndex: 1 }}>
+    <div style={{ position: "relative", zIndex: 1 }}>
+    <div style={{ maxWidth: 860, margin: "0 auto", padding: "3rem 1.25rem 1rem" }}>
+      <p style={{ textAlign: "center", fontWeight: 700, color: "var(--primary)", fontSize: "0.8rem", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.6rem" }}>About MediReach</p>
+      <h1 style={{ fontSize: "clamp(1.8rem, 4.5vw, 2.6rem)", fontWeight: 800, textAlign: "center", letterSpacing: "-0.02em", marginBottom: "0.7rem" }}>
+        Healthcare questions, <span className="mb-gradient-text-anim">without the dread.</span>
+      </h1>
+      <p style={{ textAlign: "center", color: "var(--text-muted)", maxWidth: 560, margin: "0 auto 2.5rem", lineHeight: 1.6 }}>
+        MediReach closes the gap between people and the healthcare they're putting off. Clarity, its AI companion,
+        meets you in the moment before the appointment — reassuring where it can be, direct where it has to be.
+      </p>
       <div className="mb-avatar-hero" style={{ background: "var(--grad-1)" }}>
         <span style={{ color: "#fff", fontWeight: 800, fontSize: "2.2rem", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>AA</span>
       </div>
@@ -2733,10 +2399,16 @@ function AboutUsPage({ onGoToChat }) {
         ))}
       </div>
 
-      <div style={{ textAlign: "center" }}>
+    </div>
+
+      <StatsSection />
+      <HowItWorks />
+      <SafetySection />
+
+      <div style={{ textAlign: "center", padding: "0 1.25rem 4rem" }}>
         <p style={{ fontWeight: 700, marginBottom: "1.25rem" }}>— Ali Al Saad, Founder & CEO</p>
         <RippleButton className="mb-btn" onClick={onGoToChat}>
-          <MessageCircle size={17} /> Talk to Clarity
+          <MessageCircle size={17} /> {signedIn ? "Back to Clarity" : "Talk to Clarity"}
         </RippleButton>
       </div>
     </div>
@@ -2869,54 +2541,52 @@ function AdminGallery({ isAdmin }) {
 /* ------------------------------------------------------------------ */
 
 const NAV_LINKS = [
-  { id: "why", label: "Why This Matters", type: "anchor" },
-  { id: "how", label: "How It Works", type: "anchor" },
   { id: "chat", label: "Chat with Clarity", type: "page" },
   { id: "about", label: "About Us", type: "page" },
 ];
 
-function HomePage({ onGoToChat }) {
-  return (
-    <>
-      <Hero onStart={onGoToChat} />
-      <StatsSection />
-      <HowItWorks />
-      <SafetySection />
-    </>
-  );
-}
-
-function ChatPage({ session, sessionLoading, onSignOut, onGuest, guestLoading, guestError, onGoHome }) {
+function ChatPage({ session, sessionLoading, onSignOut, onGuest, guestLoading, guestError, onGoAbout, onGoAdmin }) {
   if (sessionLoading) {
-    return <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.9rem", paddingTop: "3rem" }}>Loading…</p>;
+    return (
+      <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>Loading…</p>
+      </div>
+    );
   }
   if (session || !SUPABASE_READY) {
-    return <ChatWorkspace session={session} onSignOut={onSignOut} onGoHome={onGoHome} />;
+    return <ChatWorkspace session={session} onSignOut={onSignOut} onGoAbout={onGoAbout} onGoAdmin={onGoAdmin} />;
   }
   return (
-    <div style={{ maxWidth: 740, margin: "0 auto", padding: "2.5rem 1.25rem 3rem" }}>
-      <h2 style={{ fontSize: "clamp(1.8rem, 3.5vw, 2.5rem)", fontWeight: 800, marginBottom: "0.5rem", textAlign: "center", letterSpacing: "-0.02em" }}>Talk to Clarity</h2>
-      <p style={{ color: "var(--text-muted)", textAlign: "center", marginBottom: "1.75rem", fontSize: "0.94rem" }}>
-        Sign in first so Clarity can save and remember your conversations.
-      </p>
-      <AuthPanel />
-      <p style={{ textAlign: "center", marginTop: "1.25rem" }}>
-        <button className="mb-navlink" onClick={onGuest} disabled={guestLoading}>
-          {guestLoading ? "Starting…" : "Continue as guest — not linked to an email, but still saved"}
-        </button>
-      </p>
-      {guestError && (
-        <p style={{ textAlign: "center", color: "var(--danger)", fontSize: "0.82rem", marginTop: "0.6rem" }}>
-          Couldn't start a guest session: {guestError}
+    <div style={{ position: "relative", zIndex: 1, minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem 1.25rem 1.5rem" }}>
+      <div style={{ width: "100%", maxWidth: 420, margin: "auto 0" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.6rem", marginBottom: "1.4rem" }}>
+          <span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--grad-1)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 14px -4px rgba(20,184,166,0.5), inset 0 1px 0 rgba(255,255,255,0.35)" }}>
+            <Mascot size={28} />
+          </span>
+          <span style={{ fontWeight: 800, fontSize: "1.3rem", letterSpacing: "-0.01em", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>MediReach</span>
+        </div>
+        <AuthPanel />
+        <p style={{ textAlign: "center", marginTop: "1.25rem" }}>
+          <button className="mb-navlink" onClick={onGuest} disabled={guestLoading}>
+            {guestLoading ? "Starting…" : "Continue as guest — not linked to an email, but still saved"}
+          </button>
         </p>
-      )}
+        {guestError && (
+          <p style={{ textAlign: "center", color: "var(--danger)", fontSize: "0.82rem", marginTop: "0.6rem" }}>
+            Couldn't start a guest session: {guestError}
+          </p>
+        )}
+      </div>
+      <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", textAlign: "center", marginTop: "2rem" }}>
+        <button className="mb-navlink" style={{ padding: 0, fontSize: "0.78rem", display: "inline" }} onClick={onGoAbout}>About us</button>
+        {" · "}Not a substitute for professional medical advice
+      </p>
     </div>
   );
 }
 
 function App() {
-  const [page, setPage] = useState("home");
-  const [pendingScroll, setPendingScroll] = useState(null);
+  const [page, setPage] = useState("chat");
   const [menuOpen, setMenuOpen] = useState(false);
   const scrollY = useScrollY();
   const [session, setSession] = useState(null);
@@ -2971,19 +2641,8 @@ function App() {
 
   const scrollPct = clamp01(scrollY / ((document.documentElement.scrollHeight - window.innerHeight) || 1));
 
-  useEffect(() => {
-    if (page === "home" && pendingScroll) {
-      const id = pendingScroll;
-      const t = setTimeout(() => {
-        document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-        setPendingScroll(null);
-      }, 60);
-      return () => clearTimeout(t);
-    }
-  }, [page, pendingScroll]);
-
   const goHome = () => {
-    setPage("home");
+    setPage("chat");
     setMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -2998,17 +2657,8 @@ function App() {
 
   const navigate = (link) => {
     setMenuOpen(false);
-    if (link.type === "page") {
-      setPage(link.id);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
-    if (page !== "home") {
-      setPendingScroll(link.id);
-      setPage("home");
-    } else {
-      document.getElementById(link.id)?.scrollIntoView({ behavior: "smooth" });
-    }
+    setPage(link.id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -3021,7 +2671,7 @@ function App() {
         }} />
       )}
 
-      {!immersiveChat && <nav className="mb-nav">
+      {page !== "chat" && <nav className="mb-nav">
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0.95rem 1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
           <button onClick={goHome} style={{ background: "none", border: "none", fontSize: "1.05rem", fontWeight: 800, color: "var(--text)", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.6rem", fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.01em" }}>
             <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--grad-1)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 14px -4px rgba(20,184,166,0.5), inset 0 1px 0 rgba(255,255,255,0.35)" }}>
@@ -3085,7 +2735,7 @@ function App() {
           </div>
         )}
       </nav>}
-      {!immersiveChat && <div className="mb-progress" style={{ transform: `scaleX(${scrollPct})` }} />}
+      {page !== "chat" && <div className="mb-progress" style={{ transform: `scaleX(${scrollPct})` }} />}
 
       {/* Horizontal-overflow clipping lives on this wrapper, not on .mb-root/  */}
       {/* body/html — any of those being an ancestor of the sticky <nav> above  */}
@@ -3093,17 +2743,15 @@ function App() {
       <div className="mb-page-content">
         {!immersiveChat && <Blobs />}
 
-        {page === "home" ? (
-          <HomePage onGoToChat={goToChat} />
-        ) : page === "about" ? (
-          <AboutUsPage onGoToChat={goToChat} />
+        {page === "about" ? (
+          <AboutUsPage onGoToChat={goToChat} signedIn={!!session || !SUPABASE_READY} />
         ) : page === "admin" ? (
           <AdminGallery isAdmin={isAdmin} />
         ) : (
-          <ChatPage session={session} sessionLoading={sessionLoading} onSignOut={signOut} onGuest={startGuest} guestLoading={guestLoading} guestError={guestError} onGoHome={goHome} />
+          <ChatPage session={session} sessionLoading={sessionLoading} onSignOut={signOut} onGuest={startGuest} guestLoading={guestLoading} guestError={guestError} onGoAbout={() => { setPage("about"); window.scrollTo({ top: 0 }); }} onGoAdmin={isAdmin ? () => { setPage("admin"); window.scrollTo({ top: 0 }); } : null} />
         )}
 
-        {!immersiveChat && (
+        {page !== "chat" && (
           <footer style={{ position: "relative", borderTop: "1px solid var(--border)", padding: "2rem 1.25rem", textAlign: "center", zIndex: 1 }}>
             <p style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
               MediReach · Built by {STUDENT_NAME} · Not a substitute for professional medical advice
