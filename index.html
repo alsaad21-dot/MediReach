@@ -58,7 +58,6 @@ const VolumeX = (p) => <Icon {...p}><polygon points="11 5 6 9 2 9 2 15 6 15 11 1
 /* CONFIG — edit the ✏️ placeholders with your own info                */
 /* ------------------------------------------------------------------ */
 
-const STUDENT_NAME = "Ali Al Saad";
 
 // Using relative path to seamlessly connect with Vercel's Serverless Function (/api/chat)
 const API_BASE_URL = "";
@@ -85,7 +84,7 @@ const SUPABASE_READY = !!supabaseClient;
 
 const SYSTEM_PROMPT_BASE = `You are Clarity, the AI assistant inside MediReach — a platform built to bridge the gap between people and the healthcare they're putting off. Many users are anxious about symptoms, afraid of bad news, or unsure if something is "serious enough" to see a doctor.
 
-MediReach's vision, if someone asks what it is, who made it, or why it exists: most people don't skip the doctor because they don't care about their health — they skip it because healthcare feels confusing, intimidating, or like it wasn't built with them in mind. MediReach exists to close that gap by giving people a calm, judgment-free first step before the appointment, so confusion and fear stop being the reason someone waits too long. It was started by Ali Al Saad, a student in Abu Dhabi working toward becoming a doctor himself (an aspiring ophthalmologist), who built it because he didn't want anyone to put off understanding their own body just because medicine felt out of reach. MediReach is still early and growing — the long-term vision is a world where "I didn't understand what was happening to me" is never the reason someone delayed care. Share this naturally and briefly if it's relevant to what someone asked — don't recite it unprompted or turn a medical conversation into a pitch about the company.
+MediReach's vision, if someone asks what it is, who made it, or why it exists: most people don't skip the doctor because they don't care about their health — they skip it because healthcare feels confusing, intimidating, or like it wasn't built with them in mind. MediReach exists to close that gap by giving people a calm, judgment-free first step before the appointment, so confusion and fear stop being the reason someone waits too long. MediReach is still early and growing — the long-term vision is a world where "I didn't understand what was happening to me" is never the reason someone delayed care. Share this naturally and briefly if it's relevant to what someone asked — don't recite it unprompted or turn a medical conversation into a pitch about the company.
 
 Your personality: warm, upbeat, and a little playful by default — like a smart friend who happens to know medicine, not a formal clinician. Use light humor and casual, human phrasing where it fits. Being reassuring and being strict about urgency are not in tension — you can be genuinely friendly right up until the moment something is serious.
 
@@ -523,12 +522,13 @@ const GlobalStyles = () => (
       font-family: var(--font-body); letter-spacing: 0; line-height: 1.5;
     }
     .mb-root button, .mb-root input, .mb-root textarea { font-family: inherit; }
-    /* The chat is pinned to the *visible* area (see the visualViewport effect in App). */
-    /* iOS Safari scrolls the page when the keyboard opens; a fixed box that follows the */
-    /* visual viewport stays on screen instead of sliding away and leaving blank space.  */
+    /* The chat fills the screen and is left alone when the keyboard opens: Safari itself   */
+    /* slides the page up just enough to keep the message box above the keyboard. (An       */
+    /* earlier version resized the layout from JavaScript as well, which fought Safari and  */
+    /* caused the jump / blank screen on iPhone.)                                           */
     html, body { background: #FAF8F5; }
-    html.mb-lock, html.mb-lock body { overflow: hidden; overscroll-behavior: none; height: 100%; }
-    .mb-root-chat { position: fixed; top: var(--app-top, 0px); left: 0; right: 0; height: var(--app-h, 100dvh); min-height: 0; }
+    html.mb-lock, html.mb-lock body { overflow: hidden; overscroll-behavior: none; }
+    .mb-root-chat { position: fixed; top: 0; left: 0; right: 0; bottom: 0; height: auto; min-height: 0; }
     .mb-root :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
     .mb-input:focus-visible { outline: none; }
     .mb-navlink { font-family: var(--font-body); font-weight: 500; }
@@ -636,8 +636,8 @@ const GlobalStyles = () => (
     .mb-disclaimer { text-align: center; font-size: 0.76rem; color: var(--text-faint); margin: 0.6rem 0 0; line-height: 1.4; }
 
     /* ---- dialogs (sign in, about) ---- */
-    .mb-modal-scrim { position: fixed; top: var(--app-top, 0px); left: 0; right: 0; height: var(--app-h, 100dvh); z-index: 100; background: rgba(15,27,45,0.42); display: flex; align-items: center; justify-content: center; padding: 1rem; animation: mb-fade 0.18s ease both; }
-    .mb-modal { position: relative; background: var(--card); color: var(--text); border-radius: 20px; width: 100%; max-height: calc(var(--app-h, 100dvh) - 2rem); overflow-y: auto; padding: 1.75rem; box-shadow: 0 24px 64px -16px rgba(15,27,45,0.35); animation: mb-pop 0.2s cubic-bezier(0.22, 1, 0.36, 1) both; outline: none; }
+    .mb-modal-scrim { position: fixed; inset: 0; z-index: 100; background: rgba(15,27,45,0.42); display: flex; align-items: center; justify-content: center; padding: 1rem; animation: mb-fade 0.18s ease both; }
+    .mb-modal { position: relative; background: var(--card); color: var(--text); border-radius: 20px; width: 100%; max-height: calc(100dvh - 2rem); overflow-y: auto; padding: 1.75rem; box-shadow: 0 24px 64px -16px rgba(15,27,45,0.35); animation: mb-pop 0.2s cubic-bezier(0.22, 1, 0.36, 1) both; outline: none; }
     .mb-modal-sm { max-width: 420px; } .mb-modal-md { max-width: 480px; } .mb-modal-lg { max-width: 560px; }
     .mb-modal-close { position: absolute; top: 0.85rem; right: 0.85rem; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border: none; background: none; border-radius: 10px; cursor: pointer; color: var(--text-muted); }
     .mb-modal-close:hover { background: rgba(15,27,45,0.06); color: var(--text); }
@@ -671,6 +671,9 @@ const GlobalStyles = () => (
       .mb-suggest-grid { grid-template-columns: 1fr; }
       .mb-modal-scrim { align-items: flex-end; padding: 0; }
       .mb-modal { border-radius: 20px 20px 0 0; max-width: none; padding: 1.5rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom)); animation-name: mb-sheet; }
+      /* Forms go near the top of the screen so the keyboard doesn't push them around. */
+      .mb-modal-scrim:has(.mb-modal-sm) { align-items: flex-start; padding: 0.75rem; }
+      .mb-modal-sm { border-radius: 20px; animation-name: mb-pop; max-height: calc(100dvh - 1.5rem); }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -1330,10 +1333,10 @@ function AboutPanel({ onClose }) {
         fear of bad news was their main worry (2024).
       </p>
 
-      <h3 className="mb-about-h">Who's behind it</h3>
+      <h3 className="mb-about-h">Where it's going</h3>
       <p className="mb-about-p">
-        MediReach was started by {STUDENT_NAME}, who is in Year 12 at Cranleigh Abu Dhabi and wants to become an
-        ophthalmologist. It's a young project, and he'll keep building it while he works toward becoming a doctor.
+        MediReach is still early and growing. The goal is a world where "I didn't understand what was happening to me"
+        is never the reason someone delayed care.
       </p>
 
       <button type="button" className="mb-btn" style={{ width: "100%", justifyContent: "center", marginTop: "1.25rem" }} onClick={onClose}>
@@ -2447,30 +2450,6 @@ function App() {
       setAuthDialog(null);
     }
   }, [session, authDialog]);
-
-  // Keep the chat exactly the size and position of the *visible* screen, so the
-  // on-screen keyboard (which scrolls the page on iPhones) can never push it away.
-  useEffect(() => {
-    const vv = window.visualViewport;
-    const html = document.documentElement;
-    const update = () => {
-      const h = vv ? vv.height : window.innerHeight;
-      const top = vv ? vv.offsetTop : 0;
-      html.style.setProperty("--app-h", `${Math.round(h)}px`);
-      html.style.setProperty("--app-top", `${Math.round(top)}px`);
-    };
-    update();
-    if (vv) { vv.addEventListener("resize", update); vv.addEventListener("scroll", update); }
-    window.addEventListener("scroll", update);
-    window.addEventListener("orientationchange", update);
-    return () => {
-      if (vv) { vv.removeEventListener("resize", update); vv.removeEventListener("scroll", update); }
-      window.removeEventListener("scroll", update);
-      window.removeEventListener("orientationchange", update);
-      html.style.removeProperty("--app-h");
-      html.style.removeProperty("--app-top");
-    };
-  }, []);
 
   // No page-level scrolling behind the chat (the conversation scrolls inside itself).
   useEffect(() => {
