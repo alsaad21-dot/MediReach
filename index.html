@@ -1438,7 +1438,7 @@ function SignedOutChat({ onRequireAuth, onOpenAbout }) {
 }
 
 /* Permanently deletes the signed-in person's data and login (done by the server, which holds the key to do it). */
-function DeleteAccountModal({ session, onClose }) {
+function DeleteAccountModal({ session, onClose, isAdmin }) {
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -1474,11 +1474,17 @@ function DeleteAccountModal({ session, onClose }) {
         This permanently deletes {isGuest ? "this guest session and" : "your login and"} all of your conversations, attached photos and files, and Clarity's notes about you.
         It can't be undone.
       </p>
+      {isAdmin && (
+        <p role="alert" className="mb-error-note" style={{ marginBottom: "1rem" }}>
+          This is an <strong>admin account</strong>, so it's protected from deletion — deleting it would also remove your admin access.
+          To delete it on purpose, first set <code>is_admin = false</code> for this account in Supabase.
+        </p>
+      )}
       <form onSubmit={remove} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
         <label htmlFor="mb-delete-confirm" style={{ fontSize: "0.88rem", color: "var(--text-muted)" }}>Type <strong style={{ color: "var(--text)" }}>DELETE</strong> to confirm</label>
         <input id="mb-delete-confirm" className="mb-field" type="text" autoComplete="off" autoCapitalize="characters" value={typed} onChange={(e) => setTyped(e.target.value)} />
         {error && <p role="alert" style={{ color: "var(--danger)", fontSize: "0.85rem", margin: 0 }}>{error}</p>}
-        <button type="submit" className="mb-btn mb-btn-danger" disabled={busy || typed.trim().toUpperCase() !== "DELETE"} style={{ width: "100%", justifyContent: "center" }}>
+        <button type="submit" className="mb-btn mb-btn-danger" disabled={busy || isAdmin || typed.trim().toUpperCase() !== "DELETE"} style={{ width: "100%", justifyContent: "center" }}>
           {busy ? "Deleting…" : "Permanently delete everything"}
         </button>
         <button type="button" className="mb-btn ghost" onClick={onClose} disabled={busy} style={{ width: "100%", justifyContent: "center" }}>Cancel</button>
@@ -2244,7 +2250,7 @@ function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin, initialPrompt
         )}
       </aside>
       {editingProfile && <EditProfileModal session={session} onClose={() => setEditingProfile(false)} />}
-      {deletingAccount && <DeleteAccountModal session={session} onClose={() => setDeletingAccount(false)} />}
+      {deletingAccount && <DeleteAccountModal session={session} isAdmin={!!onGoAdmin} onClose={() => setDeletingAccount(false)} />}
       {cameraOpen && <CameraModal onCapture={handleCameraCapture} onClose={() => setCameraOpen(false)} />}
 
       <div className="mb-chat-main">

@@ -43,6 +43,20 @@ export default async function handler(req, res) {
     const userId = user && user.id;
     if (!userId || !/^[0-9a-f-]{36}$/i.test(userId)) return res.status(401).json({ error: 'Please sign in again and retry.' });
 
+    // Safeguard: an admin account can't be deleted by accident. Remove the admin flag first (see ADMIN_SETUP.md).
+    // If we can't tell whether this is an admin, don't delete anything.
+    const check = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=is_admin&user_id=eq.${userId}`, {
+      headers: adminHeaders(serviceKey),
+      signal: AbortSignal.timeout(10000),
+    }).catch(() => null);
+    if (!check || !check.ok) {
+      return res.status(502).json({ error: "Couldn't confirm this account is safe to delete — nothing was deleted. Please try again." });
+    }
+    const rows = await check.json().catch(() => null);
+    if (Array.isArray(rows) && rows.some((row) => row && row.is_admin === true)) {
+      return res.status(403).json({ error: 'This is an admin account, so it is protected from deletion. Remove admin access in Supabase first, then try again.', admin: true });
+    }
+
     for (const table of TABLES) {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?user_id=eq.${userId}`, {
         method: 'DELETE',

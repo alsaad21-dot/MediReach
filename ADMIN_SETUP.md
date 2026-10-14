@@ -101,3 +101,8 @@ Supabase **secret key** (never put it in `index.html`):
 
 Until it's added, the button shows "Account deletion isn't switched on yet." It removes that
 person's messages, feedback, conversations, profile and login — and only theirs.
+
+**Admin accounts can't be deleted by accident.** If the signed-in account has `is_admin = true`, the
+Delete account button is disabled and the server refuses the request. To delete an admin account
+on purpose, first run `update profiles set is_admin = false where user_id = (select id from auth.users where email = 'you@example.com');`
+in the Supabase SQL Editor.
