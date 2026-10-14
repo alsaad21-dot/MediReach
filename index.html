@@ -120,11 +120,15 @@ How you behave:
 - If someone expresses hesitation, fear, or shame about seeing a doctor, respond to that feeling directly and supportively before moving to information.
 - Keep responses concise — a few short paragraphs, unless asked for more.`;
 
-function buildSystemPrompt(memory, fullName) {
+function buildSystemPrompt(memory, fullName, firstName) {
   const known = memory && memory.trim()
     ? memory.trim()
     : "Nothing else yet — you haven't spoken with them before this, so don't presume any history.";
-  const nameLine = fullName ? `Their name is ${fullName} — address them by first name naturally sometimes, not in every message.\n` : "";
+  // The account name is the source of truth. People can rename themselves at any time, so it must win over
+  // anything an older memory note or an earlier message in this chat says.
+  const nameLine = fullName
+    ? `Their current name is ${fullName} (first name: ${firstName || fullName}). This comes straight from their account, so it is always up to date — they may have changed it since earlier in this conversation or since the notes below were written. If those notes or earlier messages use a different name, ignore that name and use "${firstName || fullName}" from now on, without making a fuss about the change. If they ask what their name is, tell them ${fullName}. Address them by first name naturally sometimes, not in every message. Never put their name in the [[memory: ...]] note.\n`
+    : "";
   return `${SYSTEM_PROMPT_BASE}\n\nWhat you currently know about this specific person:\n${nameLine}${known}`;
 }
 
@@ -1865,7 +1869,7 @@ function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin, initialPrompt
     setError(null);
     if (isFirst) setCelebrate((c) => c + 1);
 
-    let systemPrompt = buildSystemPrompt(memory, fullName);
+    let systemPrompt = buildSystemPrompt(memory, fullName, firstName);
     if (isFirst) {
       systemPrompt += `\n\nThis is the first message of a brand-new conversation. Immediately after the mood and memory tags, on its own line, also output a third tag in the exact form [[title: X]] where X is a short 2-4 word label for the topic of this conversation (e.g. "Headache concerns", "Chest pain worry", "Checkup anxiety"). Keep it short, plain, and human — not clinical jargon. This tag is stripped before the person sees your reply, same as the others.`;
     }
@@ -2046,6 +2050,27 @@ function ChatWorkspace({ session, onSignOut, onGoAbout, onGoAdmin, initialPrompt
     setConversations((prev) => prev.filter((c) => c.id !== id));
     if (activeId === id) startNewChat();
   };
+
+  // If the person renames themselves, rewrite the old name inside Clarity's saved notes too, so the
+  // memory doesn't keep calling them by a name they no longer use.
+  const prevNameRef = useRef({ first: firstName, full: fullName });
+  useEffect(() => {
+    const prev = prevNameRef.current;
+    prevNameRef.current = { first: firstName, full: fullName };
+    if (!memory || (prev.full === fullName && prev.first === firstName)) return;
+    const swap = (text, from, to) => {
+      if (!from || !to || from === to) return text;
+      try {
+        const escaped = from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        return text.replace(new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, "gu"), to);
+      } catch (e) {
+        return text; // very old browsers without lookbehind — the system prompt still overrides stale names
+      }
+    };
+    let updated = swap(memory, prev.full, fullName);
+    updated = swap(updated, prev.first, firstName);
+    if (updated !== memory) { setMemory(updated); persistMemory(updated); }
+  }, [firstName, fullName]);
 
   // A message typed before signing in is sent for the visitor once their chats have loaded.
   const initialSentRef = useRef(false);
